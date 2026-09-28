@@ -144,7 +144,7 @@ ll Point_in_polygon(Point pt, Point *p,ll n){//list of points p representing pol
         ll u=ldcmp(p[i].y-pt.y,0);
         ll v=ldcmp(p[j].y-pt.y,0);
         if(c>0&&u<0&&v>=0) num++;
-        if(c>0&&u>=0&&v<0) num--;
+        if(c<0&&u>=0&&v<0) num--;
     }
     //return 1 is inside, 0 is outside
     return num!=0;
