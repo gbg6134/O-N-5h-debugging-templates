@@ -31,6 +31,8 @@ struct PointLL {
     bool operator!=(const PointLL& B) const { return !(*this == B); }
 };
 
+Point POF=Point(INF,INF);
+
 typedef PointLL VectorLL;
 
 // 点积
@@ -126,6 +128,17 @@ ll Polygon_area2(const PointLL* p, ll n) {
         area += p[i].x * p[nxt].y - p[i].y * p[nxt].x;
     }
     return area;
+}
+
+bool Cross_Segment(Point a,Point b,Point c,Point d){
+    Point P=Cross_point(a,b,c,d);
+    if(P==POF) return 0;
+
+    //special case if all share a line, in line case whatever works, not in segment case
+    if(Point_on_seg(a,Line(c,d))||Point_on_seg(b,Line(c,d))||Point_on_seg(c,Line(a,b))||Point_on_seg(d,Line(a,b))) return 1;
+
+    if(Point_on_seg(P,Line(a,b))&&Point_on_seg(P,Line(c,d))) return 1;
+    else return 0;
 }
 
 // ==================== 浮点点 ====================
