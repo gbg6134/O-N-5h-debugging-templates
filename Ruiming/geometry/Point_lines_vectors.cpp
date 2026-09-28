@@ -30,6 +30,8 @@ struct Point{
     bool operator == (Point B){return ((ldcmp(x-B.x,0)==0)&&(ldcmp(y-B.y,0)==0));}
 };
 
+Point POF=Point(INF,INF);
+
 ld Dist(Point A,Point B){
     return sqrt((A.x-B.x)*(A.x-B.x)+(A.y-B.y)*(A.y-B.y));
 }
@@ -125,6 +127,18 @@ Point Cross_point(Point a,Point b,Point c,Point d){
     ld s2=Cross(b-a,d-a);
     return Point(c.x*s2-d.x*s1,c.y*s2-d.y*s1)/(s2-s1);
 }
+
+bool Cross_Segment(Point a,Point b,Point c,Point d){
+    Point P=Cross_point(a,b,c,d);
+    if(P==POF) return 0;
+
+    //special case if all share a line, in line case whatever works, not in segment case
+    if(Point_on_seg(a,Line(c,d))||Point_on_seg(b,Line(c,d))||Point_on_seg(c,Line(a,b))||Point_on_seg(d,Line(a,b))) return 1;
+
+    if(Point_on_seg(P,Line(a,b))&&Point_on_seg(P,Line(c,d))) return 1;
+    else return 0;
+}
+
 
 void init(){
     for(int i=0;i<=n;i++){
