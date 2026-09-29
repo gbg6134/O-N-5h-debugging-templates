@@ -32,8 +32,8 @@
 //
 // WHEN -- only when you cannot see every position in advance: interactive,
 // or an update that depends on an earlier answer. If you can read all input
-// first, coordinate-compress and use BIT / Seg: same complexity, ~4x faster
-// and ~4x less memory. Multiset over a value axis = count config,
+// first, coordinate-compress and use BIT / Seg: same complexity but 3.5x
+// faster and 4.5x less memory. Multiset over a value axis = count config,
 // add(v, +1) / add(v, -1), query(a, b+1), kth(k) = k-th smallest.
 //
 // MEM -- V = distinct positions ever touched, C = hi - lo. Nodes are about
@@ -49,62 +49,61 @@ struct SparseSeg {
     static T op(T a, T b) { return a + b; }
     static constexpr T ID = 0;
 
-    ll lo, hi;                        // covers [lo, hi)
-    vector<int> L, R;                 // 0 = null node, ID
-    vector<T> t;                      // node 1 = root
+    struct Nd { int l, r; T v; };
+    ll lo, hi;
+    vector<Nd> nd;               // node 0 = null, 1 = root
 
     SparseSeg(ll lo = 0, ll hi = 1, int hint = 0)
             : lo(lo), hi(hi) {
         ll C = max(hi - lo, 1LL), h = max(hint, 1);
         size_t cap = 2 + h * (3 + (C > h ? __lg(C / h) : 0));
-        L.reserve(cap); R.reserve(cap); t.reserve(cap);
+        nd.reserve(cap);
         node(); node();
     }
     int node() {
-        L.push_back(0); R.push_back(0); t.push_back(ID);
-        return (int)t.size() - 1;
+        nd.push_back({0, 0, ID});
+        return (int)nd.size() - 1;
     }
-    void set(ll i, T v) { pt(i, v, true);  }   // a[i] = v
-    void add(ll i, T v) { pt(i, v, false); }   // op into a[i]
+    void set(ll i, T v) { pt(i, v, true);  }
+    void add(ll i, T v) { pt(i, v, false); }
     T operator[](ll i) { return query(i, i + 1); }
-
     T query(ll l, ll r) {                      // fold a[l..r)
         return l < r ? qry(1, lo, hi, l, r) : ID;
     }
-    ll kth(T k) {                       // sum config, k >= 1
-        if (t[1] < k) return hi;
+    ll kth(T k) {
+        if (nd[1].v < k) return hi;
         int x = 1; ll l = lo, r = hi;
         while (r - l > 1) {
             ll m = l + (r - l) / 2;
-            if (t[L[x]] >= k) { x = L[x]; r = m; }
-            else { k -= t[L[x]]; x = R[x]; l = m; }
+            if (nd[nd[x].l].v >= k) { x = nd[x].l; r = m; }
+            else { k -= nd[nd[x].l].v; x = nd[x].r; l = m; }
         }
         return l;
     }
-    void pt(ll i, T v, bool assign) {      // descend+create
+    void pt(ll i, T v, bool assign) {
         int st[64], d = 0, x = 1; ll l = lo, r = hi;
         while (r - l > 1) {
             st[d++] = x;
             ll m = l + (r - l) / 2;
             if (i < m) {
-                if (!L[x]) { int c = node(); L[x] = c; }
-                x = L[x]; r = m;
+                if (!nd[x].l) { int c = node(); nd[x].l = c; }
+                x = nd[x].l; r = m;
             } else {
-                if (!R[x]) { int c = node(); R[x] = c; }
-                x = R[x]; l = m;
+                if (!nd[x].r) { int c = node(); nd[x].r = c; }
+                x = nd[x].r; l = m;
             }
         }
-        t[x] = assign ? v : op(t[x], v);
-        while (d--) {                          // t[0] is ID
+        nd[x].v = assign ? v : op(nd[x].v, v);
+        while (d--) {
             int p = st[d];
-            t[p] = op(t[L[p]], t[R[p]]);
+            nd[p].v = op(nd[nd[p].l].v, nd[nd[p].r].v);
         }
     }
-    T qry(int x, ll l, ll r, ll ql, ll qr) {   // x = [l, r)
+    T qry(int x, ll l, ll r, ll ql, ll qr) {
         if (!x || qr <= l || r <= ql) return ID;
-        if (ql <= l && r <= qr) return t[x];
+        if (ql <= l && r <= qr) return nd[x].v;
         ll m = l + (r - l) / 2;
-        return op(qry(L[x], l, m, ql, qr),
-                  qry(R[x], m, r, ql, qr));
+        return op(qry(nd[x].l, l, m, ql, qr),
+                  qry(nd[x].r, m, r, ql, qr));
     }
 };

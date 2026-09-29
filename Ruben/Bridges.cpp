@@ -4,7 +4,8 @@
 // safe: a doubled edge is never a bridge, a self-loop never matters. No
 // recursion, so any depth is fine. Disconnected input is fine.
 //
-//   Bridges b(n, es);      // es = vector<pair<int,int>>, 0-indexed
+//   Bridges b(n, es);      // es = edge list, 0-indexed. Any integer type
+//                          // and pair / array<_,2> / tuple.
 //
 //   b.bri[i]               // is INPUT EDGE i a bridge
 //   b.art[v]               // is v a cut vertex (articulation point)
@@ -36,13 +37,21 @@ struct Bridges {
     vector<char> bri, art;          // per edge / vertex
     vector<pair<int,int>> es;
 
-    Bridges(int n, vector<pair<int,int>> edges)
+    template<class E>      // list of pair / array / tuple
+    Bridges(int n, const E& edges)
             : n(n), m(edges.size()), g(n), comp(n, -1),
-              bri(m, 0), art(n, 0), es(move(edges)) {
+              bri(m, 0), art(n, 0) {
+        es.reserve(m);
+        for (auto& e : edges)
+            es.push_back({(int)get<0>(e), (int)get<1>(e)});
+        vector<int> deg(n, 0);
         for (int i = 0; i < m; i++) {
-            auto [a, b] = es[i];
-            g[a].push_back({b, i});
-            g[b].push_back({a, i});
+            deg[es[i].first]++; deg[es[i].second]++;
+        }
+        for (int v = 0; v < n; v++) g[v].reserve(deg[v]);
+        for (int i = 0; i < m; i++) {
+            g[es[i].first].push_back({es[i].second, i});
+            g[es[i].second].push_back({es[i].first, i});
         }
         vector<int> tin(n, -1), low(n), ptr(n, 0), cs;
         vector<int> pe(n, -1);
@@ -74,7 +83,7 @@ struct Bridges {
         vector<int> q;                // 2ecc: drop bridges
         for (int r = 0; r < n; r++) {
             if (comp[r] != -1) continue;
-            comp[r] = nc; q = {r};
+            comp[r] = nc; q.clear(); q.push_back(r);
             while (!q.empty()) {
                 int u = q.back(); q.pop_back();
                 for (auto [v, id] : g[u])
@@ -85,6 +94,9 @@ struct Bridges {
             nc++;
         }
     }
+    Bridges(int n, initializer_list<pair<int,int>> e)
+            : Bridges(n, vector<pair<int,int>>(e)) {}
+
     vector<vector<int>> tree() {     // bridge forest
         vector<vector<int>> t(nc);
         for (int i = 0; i < m; i++) if (bri[i]) {
