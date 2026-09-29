@@ -3,7 +3,8 @@
 // Strongly connected components of a DIRECTED graph. No recursion, so any
 // depth is fine. Self-loops and multi-edges are OK.
 //
-//   SCC s(g);              // g = vector<vector<int>> adjacency, 0-indexed
+//   SCC s(g);              // g = adjacency, 0-indexed. Any integer type:
+//                          // vector<vector<int>>, matrix, vector<vi>, ...
 //
 //   s.nc                   // number of components
 //   s.comp[v]              // component id of v, 0 .. nc-1
@@ -34,8 +35,10 @@ struct SCC {
     vector<vector<int>> g;
     vector<int> comp;           // topological order
 
-    SCC(vector<vector<int>> adj)
-            : n(adj.size()), g(move(adj)), comp(n, -1) {
+    template<class G>          // any vector<vector<intlike>>
+    SCC(const G& adj) : n(adj.size()), g(n), comp(n, -1) {
+        for (int u = 0; u < n; u++)
+            for (auto v : adj[u]) g[u].push_back((int)v);
         vector<int> tin(n, -1), low(n), ptr(n, 0), stk, cs;
         vector<char> on(n, 0);
         int timer = 0;
@@ -85,8 +88,8 @@ struct SCC {
                 if (comp[u] != comp[v])
                     d[comp[u]].push_back(comp[v]);
         for (auto& a : d) {
-            sort(all(a));
-            a.erase(unique(all(a)), a.end());
+            sort(a.begin(), a.end());
+            a.erase(unique(a.begin(), a.end()), a.end());
         }
         return d;
     }
