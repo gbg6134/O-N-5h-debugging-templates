@@ -54,6 +54,8 @@
 //   best(mask, v) is EXACTLY mask, not a subset; v must be inside mask.
 //   longestAny() is a MAX tool -- under MIN it is 0, one vertex beats all.
 //   hamCycle(s) means nothing unless the table was built with start == s.
+//   induced() costs O(k^2 + edges out of vs) per call, so once per SCC
+//   over the whole graph is fine.
 //   induced() hardcodes weight 1; for real weights build w yourself, and
 //   remember its output is local while your problem is global.
 //   A fixed start changes the whole table, so sweeping starts rebuilds it:
@@ -121,12 +123,14 @@ struct PathDP {
     }
     template<class G, class V>    // g, vs: any integer type
     static matrix induced(const G& g, const V& vs) {
+        static vi idx;                                // reused across calls
+        if (idx.size() < g.size()) idx.assign(g.size(), -1);
         int k = (int)vs.size();
-        vi idx(g.size(), -1);
         rep(i, 0, k) idx[vs[i]] = i;
         matrix w(k, vi(k, INF));
         rep(i, 0, k) for (ll u : g[vs[i]])
             if (idx[u] >= 0) w[i][idx[u]] = 1;
+        rep(i, 0, k) idx[vs[i]] = -1;                 // undo for next call
         return w;
     }
 };
