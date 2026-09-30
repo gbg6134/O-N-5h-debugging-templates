@@ -142,17 +142,20 @@ bool Cross_Segment(Point a,Point b,Point c,Point d){
 }
 
 // ==================== 浮点点 ====================
-struct Point {
-    ld x, y;
-    Point() : x(0), y(0) {}
-    Point(ld x, ld y) : x(x), y(y) {}
+struct Point{
+    ld x,y;
+    Point(): x(0),y(0){}
+    Point(ld x,ld y): x(x),y(y) {}
 
-    Point operator+(const Point& B) const { return Point(x + B.x, y + B.y); }
-    Point operator-(const Point& B) const { return Point(x - B.x, y - B.y); }
-    Point operator*(ld k) const { return Point(x * k, y * k); }
-    Point operator/(ld k) const { return Point(x / k, y / k); }
-    bool operator==(const Point& B) const { return ldcmp(x, B.x) == 0 && ldcmp(y, B.y) == 0; }
-    bool operator!=(const Point& B) const { return !(*this == B); }
+    Point operator + (Point B){return Point(x+B.x,y+B.y);}
+    Point operator - (Point B){return Point(x-B.x,y-B.y);}
+    Point operator * (ld k){return Point(x*k,y*k);}
+    Point operator / (ld k){return Point(x/k,y/k);}
+    bool operator == (Point B){return ((ldcmp(x-B.x,0)==0)&&(ldcmp(y-B.y,0)==0));}
+    bool operator < (Point B){
+        if (x != B.x) return x < B.x;
+        return y < B.y;
+    }
 };
 
 typedef Point Vector;
@@ -162,16 +165,20 @@ ld Dist(const PointLL& A, const PointLL& B) {
     return sqrt((ld)Dist2(A, B));
 }
 
-// 向量长度（浮点）
-ld Len(const Vector& A) {
-    return sqrt((ld)(A.x * A.x + A.y * A.y));
+ld Dot(Vector A,Vector B){return A.x*B.x+A.y*B.y;}
+ld Len(Vector A){return sqrt(Dot(A,A));}
+ld Cross(Vector A,Vector B){return A.x*B.y-A.y*B.x;}
+bool Parallel(Vector A,Vector B){return ldcmp(Cross(A,B),0)==0;}
+ld Angle(Vector A,Vector B){
+    if(Parallel(A,B)) return 0;
+    return acos(Dot(A,B)/Len(A)/Len(B));
 }
-
-// 夹角
-ld Angle(const Vector& A, const Vector& B) {
-    ld c = (A.x * B.x + A.y * B.y) / Len(A) / Len(B);
-    c = max((ld)-1.0, min((ld)1.0, c));
-    return acos(c);
+ld DirectedAngle(Vector A, Vector B) {
+    return atan2l(Cross(A,B), Dot(A,B));
+}
+ld Area(Point A,Point B,Point C){return Cross(B-A,C-A)/2;}
+Vector Rotate(Vector A,ld rad){
+    return Vector(A.x*cos(rad)-A.y*sin(rad),A.x*sin(rad)+A.y*cos(rad));
 }
 
 // 点到直线距离
