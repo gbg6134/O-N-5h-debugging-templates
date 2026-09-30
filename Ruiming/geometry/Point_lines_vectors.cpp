@@ -28,6 +28,10 @@ struct Point{
     Point operator * (ld k){return Point(x*k,y*k);}
     Point operator / (ld k){return Point(x/k,y/k);}
     bool operator == (Point B){return ((ldcmp(x-B.x,0)==0)&&(ldcmp(y-B.y,0)==0));}
+    bool operator < (Point B){
+        if (x != B.x) return x < B.x;
+        return y < B.y;
+    }
 };
 
 Point POF=Point(INF,INF);
@@ -40,13 +44,19 @@ typedef Point Vector;
 
 ld Dot(Vector A,Vector B){return A.x*B.x+A.y*B.y;}
 ld Len(Vector A){return sqrt(Dot(A,A));}
-ld Angle(Vector A,Vector B){return acos(Dot(A,B)/Len(A)/Len(B));}
 ld Cross(Vector A,Vector B){return A.x*B.y-A.y*B.x;}
+bool Parallel(Vector A,Vector B){return ldcmp(Cross(A,B),0)==0;}
+ld Angle(Vector A,Vector B){
+    if(Parallel(A,B)) return 0;
+    return acos(Dot(A,B)/Len(A)/Len(B));
+}
+ld DirectedAngle(Vector A, Vector B) {
+    return atan2l(Cross(A,B), Dot(A,B));
+}
 ld Area(Point A,Point B,Point C){return Cross(B-A,C-A)/2;}
 Vector Rotate(Vector A,ld rad){
     return Vector(A.x*cos(rad)-A.y*sin(rad),A.x*sin(rad)+A.y*cos(rad));
 }
-bool Parallel(Vector A,Vector B){return ldcmp(Cross(A,B),0)==0;}
 
 struct Line{
     Point p1,p2;
