@@ -28,6 +28,10 @@ struct Point{
     Point operator * (ld k){return Point(x*k,y*k);}
     Point operator / (ld k){return Point(x/k,y/k);}
     bool operator == (Point B){return ((ldcmp(x-B.x,0)==0)&&(ldcmp(y-B.y,0)==0));}
+    bool operator < (Point B){
+        if (x != B.x) return x < B.x;
+        return y < B.y;
+    }
 };
 
 ld Dist(Point A,Point B){
