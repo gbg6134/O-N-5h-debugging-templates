@@ -1,15 +1,22 @@
 \section{Contest setup}
 
 \entry{Header}{paste first}{%
-Every entry in this document assumes this block. Ranges are \textbf{half-open}
-\code{[l, r)} and graphs are \textbf{0-indexed} unless the entry says otherwise
---- both are stated wherever it matters.}
+Every entry in this document assumes this block: Ruben's and Ruiming's templates
+merged. Ruben's code is \textbf{0-indexed} with \textbf{half-open} ranges
+\code{[l, r)}; Ruiming's is \textbf{1-indexed} with global arrays of size
+\code{MAXN} --- each entry says which.\\[0.3ex]
+\textbf{Update \code{MAXN}} to fit the problem. Ruiming's per-problem globals
+(\code{ll t,n,a[MAXN],ans;}) are left out so they don't clash with the entries;
+add them back as you need. Ruiming's \code{struct matrix} clashes with the
+\code{matrix} typedef --- delete the typedef line when you use it.}
 
 %HEADER
 \begin{lstlisting}
+//UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #include <bits/stdc++.h>
 #include <cassert>   // bits/stdc++.h no longer pulls this in
 using namespace std;
+
 typedef long long ll;
 typedef long double ld;
 typedef unsigned long long ull;
@@ -20,7 +27,10 @@ typedef vector<vi> matrix;
 #define rep(i, a, b) for(ll i = a; i < b; i++)
 #define down(i, b, a) for(ll i = b - 1; i >= a; i--)
 #define all(v) (v).begin(), (v).end()
-const ll INF = 1e18;
+ld eps = 1e-9;
+
+const ll INF=1e18;
+const ll MAXN=206;//UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!
 
 int main(){
     ios_base::sync_with_stdio(false);

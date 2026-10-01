@@ -5,6 +5,9 @@
 #   %NOCOMPILE       fragment / not C++ -- skip it
 #   %LABEL <name>    also save this listing as a reusable dependency
 #   %DEP <a> <b> ..  prepend those labelled listings before compiling this one
+#   %UNDEF <name>    drop the header typedef of <name> (the listing redefines it)
+#   %STANDALONE      a complete file of its own: compile it without the header
+# A listing with its own int main() is a whole program: no stub main is added.
 set -u
 cd "$(dirname "$0")/.."
 OUT=build/snips
@@ -19,15 +22,17 @@ awk -v out="$OUT" '
   index($0, "%HEADER")    == 1 { hdr  = 1; next }
   index($0, "%LABEL")     == 1 { lbl  = $2; next }
   index($0, "%DEP")       == 1 { dep = $0; sub(/^%DEP[ ]*/, "", dep); next }
+  index($0, "%UNDEF")     == 1 { und  = $2; next }
+  index($0, "%STANDALONE") == 1 { und = "*"; next }
   index($0, B) > 0 {
       n++
       lf = (lbl != "") ? out "/lib_" lbl ".cpp" : ""
       if (hdr)       { f = out "/header.cpp"; hdr = 0 }
       else if (skip) { f = ""; skip = 0 }
       else           { f = sprintf("%s/snip_%03d.cpp", out, n)
-                       printf "%s\t%s\n", f, dep > man }
+                       printf "%s|%s|%s\n", f, dep, und > man }
       if (lf != "") printf "" > lf
-      inl = 1; lbl = ""; dep = ""; next
+      inl = 1; lbl = ""; dep = ""; und = ""; next
   }
   index($0, E) > 0 {
       if (inl) { if (f != "") close(f); if (lf != "") close(lf) }
@@ -43,16 +48,19 @@ grep -v -e 'int main' -e 'sync_with_stdio' -e 'cin.tie' "$OUT/header.cpp" \
   | sed '/^}$/d' > "$OUT/prelude.cpp"
 
 fail=0; pass=0; failed=""
-while IFS=$'\t' read -r s deps; do
+while IFS='|' read -r s deps und; do
   [ -n "$s" ] || continue
   for std in gnu++17 gnu++20; do
     tu="$OUT/tu_$(basename "$s" .cpp)_$std.cpp"
-    cat "$OUT/prelude.cpp" > "$tu"
+    if [ "$und" = "*" ]; then : > "$tu"
+    elif [ -n "$und" ]; then grep -v "typedef .* $und;" "$OUT/prelude.cpp" > "$tu"
+    else cat "$OUT/prelude.cpp" > "$tu"; fi
     for d in $deps; do
       if [ -f "$OUT/lib_$d.cpp" ]; then cat "$OUT/lib_$d.cpp" >> "$tu"
       else echo "WARN: $(basename "$s") wants missing dep '$d'"; fi
     done
-    cat "$s" >> "$tu"; echo 'int main(){}' >> "$tu"
+    cat "$s" >> "$tu"
+    grep -q 'int main' "$s" || echo 'int main(){}' >> "$tu"
     if err=$(g++ -std=$std -fsyntax-only "$tu" 2>&1); then
       pass=$((pass+1))
     else

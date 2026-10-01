@@ -1,209 +1,609 @@
 \section{Geometry}
 
-\entry{Point / vector}{}{%
-One template instead of a float-only \code{Point}. \code{Pl} is \code{P<ll>} and is
-\textbf{exact} --- use it for everything decided by a sign (orientation, hulls,
-point-in-polygon, segment crossing) and you have no \code{eps} to tune and no wrong
-answers. \code{Pd} is \code{P<ld>}, for the metric answers where you must divide or take
-a root.\\[0.3ex]
-\begin{ctab}{0.22}{0.73}
-\code{cross(p)} & $x p_y - y p_x$. Sign = which side; $|\cdot|$ = area of the
-parallelogram.\\
-\code{a.cross(b,c)} & \code{(b-a).cross(c-a)}, the turn at \code{a}.\\
-\code{dot(p)} & $<0$ means the angle is obtuse.\\
-\code{dist2()} & squared length, exact for \code{Pl}. Compare these, never
-\code{dist()}.\\
-\code{perp()} & rotate $90^\circ$ counter-clockwise.\\
-\code{angle()} & \code{atan2}, in $(-\pi, \pi]$.\\
+\entry{Point / vector}{Ruiming}{%
+Ruiming's geometry base: every other entry here builds on it, so it is printed once.
+Floating point, compared through \code{ldcmp(x, y)}, which returns \code{-1}, \code{0},
+\code{1} with tolerance \code{eps}. His geometry files use \code{eps = 1e-6} (the header
+has \code{1e-9}) --- set it in \code{solve()}; for large coordinates make it relative:
+\code{eps = max(eps, 1e-6 * maxabs)}.\\[0.3ex]
+\begin{ctab}{0.27}{0.68}
+\code{Cross(A,B)} & $A_x B_y - A_y B_x$. Sign = which side; $|\cdot|$ = parallelogram
+area.\\
+\code{Area(A,B,C)} & signed triangle area, $>0$ if counter-clockwise.\\
+\code{Angle(A,B)} & unsigned, in $[0,\pi]$.\\
+\code{DirectedAngle} & signed, in $(-\pi,\pi]$, from \code{A} to \code{B}.\\
+\code{Rotate(A,rad)} & counter-clockwise.\\
 \end{ctab}\\[0.3ex]
-\code{unit()} and \code{rotate()} only make sense for \code{Pd} (they divide / call
-\code{cos}); they simply will not compile for \code{Pl}, which is the point.
-Overflow: \code{cross} on coordinates up to $10^9$ reaches $2\cdot10^{18}$, just inside
-\code{ll} --- above that use \code{i128}.\\[0.3ex]
-\code{ccw(a,b,c)} is \code{+1} if \code{a->b->c} turns left, \code{-1} right, \code{0}
-collinear. Nearly every predicate below is built from it.}
+\code{POF} is the ``no point'' sentinel \code{Cross\_Segment} compares against.}
 
 %LABEL point
+%FROM Ruiming/geometry/Point_lines_vectors.cpp
 \begin{lstlisting}
-template<class T> struct P {
-    T x, y;
-    P(T x = 0, T y = 0) : x(x), y(y) {}
-    P operator+(P p) const { return {x + p.x, y + p.y}; }
-    P operator-(P p) const { return {x - p.x, y - p.y}; }
-    P operator*(T k) const { return {x * k, y * k}; }
-    P operator/(T k) const { return {x / k, y / k}; }
-    T dot(P p)   const { return x * p.x + y * p.y; }
-    T cross(P p) const { return x * p.y - y * p.x; }
-    T cross(P a, P b) const {         // turn at *this
-        return (a - *this).cross(b - *this);
-    }
-    T dist2()  const { return x * x + y * y; }
-    ld dist()  const { return sqrtl((ld)dist2()); }
-    ld angle() const { return atan2l((ld)y, (ld)x); }
-    P perp()   const { return {-y, x}; }      // 90 deg ccw
-    P unit() const { return *this / (T)dist(); } // Pd only
-    P rotate(ld a) const {             // Pd only
-        return {x * cosl(a) - y * sinl(a),
-                x * sinl(a) + y * cosl(a)};
-    }
-    bool operator<(P p) const {
-        return tie(x, y) < tie(p.x, p.y);
-    }
-    bool operator==(P p) const {
-        return tie(x, y) == tie(p.x, p.y);
+const ld pi=acos(-1.0);
+//eps=1e-6;//MIGHT GET WA PGA EPS TOO SMALL!!!!!!!!!!!!!!!!!
+
+ll ldcmp(ld x,ld y){
+    if(fabs(x-y)<eps) return 0;
+    else return x<y?-1:1;
+    //is x<y return -1, x>y return 1;
+}
+
+struct Point{
+    ld x,y;
+    Point(): x(0),y(0){}
+    Point(ld x,ld y): x(x),y(y) {}
+
+    Point operator + (Point B){return Point(x+B.x,y+B.y);}
+    Point operator - (Point B){return Point(x-B.x,y-B.y);}
+    Point operator * (ld k){return Point(x*k,y*k);}
+    Point operator / (ld k){return Point(x/k,y/k);}
+    bool operator == (Point B){
+        return ((ldcmp(x-B.x,0)==0)&&(ldcmp(y-B.y,0)==0));}
+    bool operator < (Point B){
+        if (x != B.x) return x < B.x;
+        return y < B.y;
     }
 };
-using Pl = P<ll>;          // exact: signs, hulls, areas
-using Pd = P<ld>;          // metric: distances, intersections
 
-template<class T> int sgn(T v) { return (v > 0) - (v < 0); }
-template<class T> int ccw(P<T> a, P<T> b, P<T> c) {
-    return sgn(a.cross(b, c));
+Point POF=Point(INF,INF);
+
+ld Dist(Point A,Point B){
+    return sqrt((A.x-B.x)*(A.x-B.x)+(A.y-B.y)*(A.y-B.y));
+}
+
+typedef Point Vector;
+
+ld Dot(Vector A,Vector B){return A.x*B.x+A.y*B.y;}
+ld Len(Vector A){return sqrt(Dot(A,A));}
+ld Cross(Vector A,Vector B){return A.x*B.y-A.y*B.x;}
+bool Parallel(Vector A,Vector B){
+    return ldcmp(Cross(A,B),0)==0;}
+ld Angle(Vector A,Vector B){
+    if(Parallel(A,B)) return 0;
+    return acos(Dot(A,B)/Len(A)/Len(B));
+}
+ld DirectedAngle(Vector A, Vector B) {
+    return atan2l(Cross(A,B), Dot(A,B));
+}
+ld Area(Point A,Point B,Point C){return Cross(B-A,C-A)/2;}
+Vector Rotate(Vector A,ld rad){
+    return Vector(A.x*cos(rad)-A.y*sin(rad),
+                  A.x*sin(rad)+A.y*cos(rad));
 }
 \end{lstlisting}
 
-\entry{Segments and lines}{exact where it matters}{%
-\code{onSeg} and \code{segInter} are \textbf{exact} on \code{Pl} and handle every
-degenerate case --- collinear overlap, shared endpoints, zero-length segments. That is
-the usual source of wrong answers, so prefer these over an orientation-only
-test.\\[0.3ex]
-\code{lineInter} works on infinite lines and returns \code{false} when they are parallel
-(including identical). \code{segDist} is point-to-\emph{segment}; for
-segment-to-segment take the min of the four endpoint-to-segment distances, or 0 if they
-cross.}
+\entry{Lines and segments}{Ruiming}{%
+A \code{Line} is two points \code{p1}, \code{p2}; the same struct is used as a
+\emph{segment}. Build it from two points, from a point and an angle, or from
+$ax+by+c=0$.\\[0.3ex]
+\code{Point\_line\_relation}: \code{1} left of the directed line \code{p1->p2},
+\code{2} right, \code{0} on it. \code{Line\_relation}: \code{0} parallel, \code{1} the
+same line, \code{2} intersecting.\\[0.3ex]
+\code{Cross\_point(a,b,c,d)} intersects the \emph{lines} \code{ab} and \code{cd}; it
+divides by zero when they are parallel, so check \code{Line\_relation} first.
+\code{Cross\_Segment} handles the collinear cases through its endpoint checks.}
 
 %DEP point
 %LABEL seg
+%FROM Ruiming/geometry/Point_lines_vectors.cpp
 \begin{lstlisting}
-bool onSeg(Pl p, Pl a, Pl b) {          // p on segment ab
-    return (b - a).cross(p - a) == 0
-        && (a - p).dot(b - p) <= 0;
+struct Line{
+    Point p1,p2;
+    Line(){}
+    Line(Point p1,Point p2): p1(p1),p2(p2){}
+    Line(Point P,ld angle){
+        p1=P;
+        if(ldcmp(angle-pi/2,0)==0){
+            p2=p1+Point(0,1);
+        }else{
+            p2=p1+Point(1,tan(angle));
+        }
+    }
+
+    Line(ld a,ld b,ld c){
+        if(ldcmp(a,0)==0){
+            p1=Point(0,-c/b);
+            p2=Point(1,-c/b);
+        }else if(ldcmp(b,0)==0){
+            p1=Point(-c/a,0);
+            p2=Point(-c/a,1);
+        }else{
+            p1=Point(0,-c/b);
+            p2=Point(1,(-c-a)/b);
+        }
+    }
+};
+
+//for directed lines from p1 to p2
+ll Point_line_relation(Point P, Line v){
+    ll c=ldcmp(Cross(P-v.p1,v.p2-v.p1),0);
+    if(c<0) return 1;//P on the leftside of v
+    if(c>0) return 2;//P on the rightside of v
+    return 0; //P on v
 }
-bool segInter(Pl a, Pl b, Pl c, Pl d) {
-    int d1 = ccw(c, d, a), d2 = ccw(c, d, b);
-    int d3 = ccw(a, b, c), d4 = ccw(a, b, d);
-    if (d1 * d2 < 0 && d3 * d4 < 0) return true;
-    return onSeg(a, c, d) || onSeg(b, c, d)
-        || onSeg(c, a, b) || onSeg(d, a, b);
+
+bool Point_on_seg(Point P, Line v){
+    return ldcmp(Cross(P-v.p1,v.p2-v.p1),0)==0
+         &&ldcmp(Dot(P-v.p1,P-v.p2),0)<=0;
 }
-// lines ab and cd; false if parallel
-bool lineInter(Pd a, Pd b, Pd c, Pd d, Pd& out) {
-    ld den = (b - a).cross(d - c);
-    if (fabsl(den) < 1e-12) return false;
-    out = a + (b - a) * ((c - a).cross(d - c) / den);
-    return true;
+
+ld Dis_point_line(Point P, Line v){
+    return fabs(Cross(P-v.p1,v.p2-v.p1)/Dist(v.p1,v.p2));
 }
-ld segDist(Pd p, Pd a, Pd b) {          // point to segment
-    if (a == b) return (p - a).dist();
-    ld t = (p - a).dot(b - a) / (ld)(b - a).dist2();
-    t = max((ld)0, min((ld)1, t));
-    return (p - (a + (b - a) * t)).dist();
+
+Point Point_line_proj(Point P, Line v){
+    ld k=Dot(v.p2-v.p1,P-v.p1)/Dot(v.p2-v.p1,v.p2-v.p1);
+    return v.p1+(v.p2-v.p1)*k;
+}
+
+Point Point_line_symmetry(Point P, Line v){
+    Point q=Point_line_proj(P,v);
+    return Point(2*q.x-P.x,2*q.y-P.y);
+}
+
+ld Dis_point_seg(Point P, Line v){
+    if(ldcmp(Dot(P-v.p1,v.p2-v.p1),0)<0
+     ||ldcmp(Dot(P-v.p2,v.p1-v.p2),0)<0){
+        return min(Dist(P,v.p1),Dist(P,v.p2));
+    }
+    return Dis_point_line(P,v);
+}
+
+//Directed lines
+ll Line_relation(Line v1, Line v2){
+    if(ldcmp(Cross(v1.p2-v1.p1,v2.p2-v2.p1),0)==0){
+        //overlapp
+        if(Point_line_relation(v1.p1,v2)==0) return 1;
+
+        //parallell
+        else return 0;
+    }
+    //intersect
+    return 2;
+}
+
+//Must have ab,cd not the same
+Point Cross_point(Point a,Point b,Point c,Point d){
+    ld s1=Cross(b-a,c-a);
+    ld s2=Cross(b-a,d-a);
+    return Point(c.x*s2-d.x*s1,c.y*s2-d.y*s1)/(s2-s1);
+}
+
+bool Cross_Segment(Point a,Point b,Point c,Point d){
+    Point P=Cross_point(a,b,c,d);
+    if(P==POF) return 0;
+
+    //special case if all share a line, in line case
+    //whatever works, not in segment case
+    if(Point_on_seg(a,Line(c,d))||Point_on_seg(b,Line(c,d))||
+       Point_on_seg(c,Line(a,b))||Point_on_seg(d,Line(a,b)))
+        return 1;
+
+    if(Point_on_seg(P,Line(a,b))&&Point_on_seg(P,Line(c,d)))
+        return 1;
+    else return 0;
 }
 \end{lstlisting}
 
-\entry{Polygons}{$O(n)$, \code{inConvex} $O(\log n)$}{%
-\code{area2} is \emph{twice} the signed area (shoelace), exact: positive means the
-vertices are counter-clockwise. The real area is \code{abs(area2)/2.0} --- keep the
-doubled integer as long as you can.\\[0.3ex]
-\code{inPoly} works for any simple polygon, convex or not, and returns \code{2} on the
-boundary so you can decide what counts. \code{inConvex} is the $O(\log n)$ version and
-needs a strictly convex counter-clockwise polygon, i.e. exactly what \code{hull}
-returns.\\[0.3ex]
-\textbf{Pick's theorem} (lattice polygon): $A = I + B/2 - 1$, so with \code{area2} and
-the boundary count $B = \sum \gcd(|dx|, |dy|)$ over the edges, the interior count is
-$I = (\texttt{area2} - B + 2)/2$.}
+\entry{Polygons}{Ruiming \quad $O(n)$}{%
+\textbf{1-indexed}: the polygon is \code{p[1..n]}, in order (either direction).
+\code{Point\_in\_polygon} returns \code{3} on a vertex, \code{2} on an edge,
+\code{1} inside, \code{0} outside; it works for non-convex polygons (winding number).
+\code{Polygon\_area} returns the \emph{absolute} area.\\[0.3ex]
+\textbf{Pick's theorem} (lattice polygon): $A = I + B/2 - 1$, with the boundary count
+$B = \sum \gcd(|dx|, |dy|)$ over the edges --- so the interior count is
+$I = (\texttt{Polygon\_area2} - B + 2)/2$ using the exact version in
+\emph{Lattice points}.}
 
 %DEP point seg
 %LABEL poly
+%FROM Ruiming/geometry/Polygon.cpp
 \begin{lstlisting}
-ll area2(const vector<Pl>& p) {        // signed, 2x area
-    ll a = 0; int n = (int)p.size();
-    rep(i, 0, n) a += p[i].cross(p[(i+1) % n]);
-    return a;
-}
-// 0 = outside, 1 = inside, 2 = on the boundary
-int inPoly(const vector<Pl>& p, Pl q) {
-    int n = (int)p.size(), c = 0;
-    rep(i, 0, n) {
-        Pl a = p[i], b = p[(i+1) % n];
-        if (onSeg(q, a, b)) return 2;
-        if (a.y > b.y) swap(a, b);
-        if (a.y <= q.y && q.y < b.y
-            && (b - a).cross(q - a) > 0) c ^= 1;
+//list of points p representing polygon
+ll Point_in_polygon(Point pt, Point *p,ll n){
+    for(int i=1;i<=n;i++){
+        //Point on vetices
+        if(ldcmp(Dist(p[i],pt),0)==0) return 3;
     }
-    return c;
-}
-// p = strictly convex, ccw (what hull() gives)
-int inConvex(const vector<Pl>& p, Pl q) {
-    int n = (int)p.size();
-    if (n == 1) return p[0] == q ? 2 : 0;
-    if (n == 2) return onSeg(q, p[0], p[1]) ? 2 : 0;
-    if (ccw(p[0], p[1], q) < 0) return 0;
-    if (ccw(p[0], p[n-1], q) > 0) return 0;
-    int lo = 1, hi = n - 1;
-    while (hi - lo > 1) {
-        int m = (lo + hi) / 2;
-        if (ccw(p[0], p[m], q) >= 0) lo = m; else hi = m;
+    for(int i=1;i<=n;i++){
+        Line v=Line(p[i],p[i%n+1]);
+
+        //Point on Edge
+        if(Point_on_seg(pt,v)) return 2;
     }
-    int c = ccw(p[lo], p[lo+1], q);
-    if (c < 0) return 0;
-    if (c == 0) return 2;
-    if (onSeg(q, p[0], p[1]) || onSeg(q, p[0], p[n-1]))
-        return 2;
-    return 1;
+    ll num=0;
+    for(int i=1;i<=n;i++){
+        ll j=i%n+1;
+        ll c=ldcmp(Cross(pt-p[j],p[i]-p[j]),0);
+        ll u=ldcmp(p[i].y-pt.y,0);
+        ll v=ldcmp(p[j].y-pt.y,0);
+        if(c>0&&u<0&&v>=0) num++;
+        if(c<0&&u>=0&&v<0) num--;
+    }
+    //return 1 is inside, 0 is outside
+    return num!=0;
+}
+
+ld Polygon_area(Point *p,ll n){
+    ld area=0;
+    for(int i=1;i<=n;i++){
+        area+=Cross(p[i],p[i%n+1]);
+    }
+    return abs(area/2.0);
 }
 \end{lstlisting}
 
-\entry{Convex hull}{$O(n \log n)$ \quad mem $n$}{%
-Andrew's monotone chain. Counter-clockwise, \textbf{no collinear points}, first vertex
-not repeated at the end. Duplicates in the input are removed. Fewer than 3 distinct
-points come back as-is.\\[0.3ex]
-To \emph{keep} collinear boundary points change \code{<= 0} to \code{< 0} --- but then
-the ``is every input point on the hull'' test becomes
-\code{hull(p).size() == p.size()}, which is what Ruiming's original was checking.\\[0.3ex]
-Diameter of a point set = farthest pair on the hull: rotating calipers, or just
-$O(h^2)$ over hull vertices when $h$ is small. Minimum-width / minimum-area enclosing
-rectangle also come from calipers on the hull.}
+\entry{Convex hull}{Ruiming \quad $O(n \log n)$}{%
+Andrew's monotone chain, \textbf{1-indexed}: input \code{p[1..n]} (sorted and
+deduplicated in place), output \code{ch[1..v]}, returns \code{v}. Collinear points on
+the boundary are \textbf{kept}; change both \code{<0} to \code{<=0} to drop them.\\[0.3ex]
+The final \code{sort}/\code{unique} leaves \code{ch} sorted by $(x,y)$, \emph{not} in
+hull order --- fine for counting or membership (``are all points on the hull'' is
+\code{Convex\_Hull(p,n,ch)==n}). For the actual cycle, delete those two lines; then
+\code{ch[v]} repeats \code{ch[1]}, so use \code{v-1} points.\\[0.3ex]
+Diameter of a point set = farthest pair on the hull (rotating calipers, or $O(h^2)$ when
+$h$ is small).}
 
 %DEP point
 %LABEL hull
+%FROM Ruiming/geometry/Convex_Hull.cpp
 \begin{lstlisting}
-vector<Pl> hull(vector<Pl> p) {
-    sort(all(p)); p.erase(unique(all(p)), p.end());
-    int n = (int)p.size();
-    if (n < 3) return p;
-    vector<Pl> h;
-    rep(phase, 0, 2) {              // lower, then upper
-        size_t start = h.size();
-        for (Pl q : p) {
-            while (h.size() >= start + 2
-                   && ccw(h[h.size()-2], h.back(), q) <= 0)
-                h.pop_back();
-            h.push_back(q);
+ll Convex_Hull(Point *p, ll n,Point *ch){
+    sort(p+1,p+n+1);
+    n=unique(p+1,p+n+1)-(p+1);
+    if (n == 1) { ch[1] = p[1]; return 1; }
+    if (n == 2) { ch[1] = p[1]; ch[2] = p[2]; return 2; }
+
+    ll v=0;
+
+    for(int i=1;i<=n;i++){
+        while(v>1&&
+              ldcmp(Cross(ch[v]-ch[v-1],p[i]-ch[v]),0)<0){
+            v--;
         }
-        h.pop_back();
-        reverse(all(p));
+        ch[++v]=p[i];
     }
-    return h;
+
+    ll j=v;
+    for(int i=n-1;i>=1;i--){
+        //<=0 do not count points on the side of convex hull
+        while(v>j&&
+              ldcmp(Cross(ch[v]-ch[v-1],p[i]-ch[v]),0)<0){
+            v--;
+        }
+        ch[++v]=p[i];
+    }
+
+    sort(ch+1,ch+v+1);
+    v=unique(ch+1,ch+v+1)-(ch+1);
+    //might include double points on the line case
+    return v;
+}
+\end{lstlisting}
+
+\entry{Half-plane intersection}{Ruiming \quad $O(n \log n)$}{%
+Each \code{Line} keeps the half-plane on its \textbf{left} (\code{p1->p2}).
+\code{HPI(L)} returns the vertices of the intersection, counter-clockwise, or
+\code{\{\}} if it is empty or has fewer than 3 vertices. It assumes the result is
+\textbf{bounded} --- add four big box edges if it might not be.\\[0.3ex]
+This file has its \textbf{own \code{Line}} (adds direction \code{v}, angle \code{ang} and
+\code{operator<}): use it \emph{instead of} the one in \emph{Lines and segments}. The
+functions there are textually identical in his HPI file and work with this
+\code{Line} too. (Its \code{Point::operator<} also compares \code{x} through
+\code{ldcmp}; \code{HPI} itself does not need it.)\\[0.3ex]
+Area of the intersection of convex polygons: push every edge of every polygon (each
+counter-clockwise), then the shoelace sum over \code{HPI}'s output.}
+
+%DEP point
+%FROM Ruiming/geometry/Half_Plane_Intersect.cpp
+%LABEL hpi
+\begin{lstlisting}
+struct Line {
+    Point p1, p2;
+    Vector v;
+    ld ang;
+
+    Line() : p1(0,0), p2(0,0), v(0,0), ang(0) {}
+
+    Line(Point p1, Point p2) : p1(p1), p2(p2) {
+        v = p2 - p1;
+        ang = atan2l(v.y, v.x);
+    }
+
+    Line(Point P, ld angle) : p1(P) {
+        p2 = p1 + Point(cosl(angle), sinl(angle));
+        v = p2 - p1;
+        ang = atan2l(v.y, v.x);
+    }
+
+    Line(ld a, ld b, ld c) {
+        if (ldcmp(a, 0) == 0) {
+            p1 = Point(0, -c/b);
+            p2 = Point(1, -c/b);
+        } else if (ldcmp(b, 0) == 0) {
+            p1 = Point(-c/a, 0);
+            p2 = Point(-c/a, 1);
+        } else {
+            p1 = Point(0, -c/b);
+            p2 = Point(1, (-c-a)/b);
+        }
+        v = p2 - p1;
+        ang = atan2l(v.y, v.x);
+    }
+
+    bool operator<(Line L) {
+        if (ldcmp(ang, L.ang) != 0) return ang < L.ang;
+        return ldcmp(Cross(L.p1 - p1, L.p2 - p1), 0) > 0;
+    }
+};
+
+bool OnLeft(Line L, Point p) {
+    return ldcmp(Cross(L.v, p - L.p1), 0) >= 0;
+}
+
+Point Cross_point(Line a, Line b) {
+    Vector u = a.p1 - b.p1;
+    ld t = Cross(b.v, u) / Cross(a.v, b.v);
+    return a.p1 + a.v * t;
+}
+
+vector<Point> HPI(vector<Line> L) {
+    int n = L.size();
+    if (n == 0) return {};
+
+    sort(L.begin(), L.end());
+
+    // dedupe by polar angle, keep only the leftmost one
+    vector<Line> lines;
+    for (int i = 0; i < n; i++) {
+        if (i > 0 && ldcmp(L[i].ang, L[i-1].ang) == 0)
+            continue;
+        lines.push_back(L[i]);
+    }
+    n = lines.size();
+    if (n <= 2) return {};
+
+    vector<Line> q(n);
+    vector<Point> p(n);
+    int first = 0, last = 0;
+    q[0] = lines[0];
+
+    for (int i = 1; i < n; i++) {
+        while (first < last && !OnLeft(lines[i], p[last-1]))
+            last--;
+        while (first < last && !OnLeft(lines[i], p[first]))
+            first++;
+
+        q[++last] = lines[i];
+
+        if (ldcmp(Cross(q[last].v, q[last-1].v), 0) == 0) {
+            last--;
+            if (OnLeft(q[last], lines[i].p1))
+                q[last] = lines[i];
+        }
+
+        if (first < last) {
+            p[last-1] = Cross_point(q[last-1], q[last]);
+        }
+    }
+
+    while (first < last && !OnLeft(q[first], p[last-1]))
+        last--;
+    if (last - first <= 1) return {};
+
+    p[last] = Cross_point(q[last], q[first]);
+
+    vector<Point> ans;
+    for (int i = first; i <= last; i++) ans.push_back(p[i]);
+    return ans;
+}
+\end{lstlisting}
+
+\entry{Lattice points (exact)}{Ruiming}{%
+The integer versions: \code{PointLL} / \code{LineLL}, no \code{eps}, so every sign
+test is \textbf{exact}. Same names and return codes as the floating-point functions
+(they overload), plus \code{Dist2} and \code{Area2} / \code{Polygon\_area2}, which are
+\emph{twice} the signed area. Projection, reflection, intersection and rotation return a
+floating \code{Point}.\\[0.3ex]
+\code{Point\_in\_polygon} is 1-indexed and returns \code{3} vertex, \code{2} edge,
+\code{1} inside, \code{0} outside. Coordinates up to $10^9$ keep \code{Cross} inside
+\code{ll}.}
+
+%DEP point
+%LABEL lattice
+%FROM Ruiming/geometry/Lattic_Point.cpp
+\begin{lstlisting}
+// ==================== integer point ====================
+struct PointLL {
+    ll x, y;
+    PointLL() : x(0), y(0) {}
+    PointLL(ll x, ll y) : x(x), y(y) {}
+
+    PointLL operator+(const PointLL& B) const {
+        return PointLL(x + B.x, y + B.y); }
+    PointLL operator-(const PointLL& B) const {
+        return PointLL(x - B.x, y - B.y); }
+    PointLL operator*(ll k) const {
+        return PointLL(x * k, y * k); }
+    PointLL operator/(ll k) const {
+        return PointLL(x / k, y / k); }
+    bool operator==(const PointLL& B) const {
+        return x == B.x && y == B.y; }
+    bool operator!=(const PointLL& B) const {
+        return !(*this == B); }
+};
+
+typedef PointLL VectorLL;
+
+// dot product
+ll Dot(const VectorLL& A, const VectorLL& B) {
+    return A.x * B.x + A.y * B.y;
+}
+
+// cross product
+ll Cross(const VectorLL& A, const VectorLL& B) {
+    return A.x * B.y - A.y * B.x;
+}
+
+// squared distance
+ll Dist2(const PointLL& A, const PointLL& B) {
+    ll dx = A.x - B.x, dy = A.y - B.y;
+    return dx * dx + dy * dy;
+}
+
+// twice the signed area
+ll Area2(const PointLL& A, const PointLL& B,
+         const PointLL& C) {
+    return Cross(B - A, C - A);
+}
+
+// parallel test
+bool Parallel(const VectorLL& A, const VectorLL& B) {
+    return Cross(A, B) == 0;
+}
+
+// line (integer points)
+struct LineLL {
+    PointLL p1, p2;
+    LineLL() {}
+    LineLL(const PointLL& p1, const PointLL& p2)
+        : p1(p1), p2(p2) {}
+};
+
+// point vs line: 1 left, 2 right, 0 on the line
+ll Point_line_relation(const PointLL& P, const LineLL& v) {
+    ll c = Cross(P - v.p1, v.p2 - v.p1);
+    if (c < 0) return 1;
+    if (c > 0) return 2;
+    return 0;
+}
+
+// is the point on the segment
+bool Point_on_seg(const PointLL& P, const LineLL& v) {
+    return Cross(P - v.p1, v.p2 - v.p1) == 0 &&
+           min(v.p1.x, v.p2.x) <= P.x &&
+           P.x <= max(v.p1.x, v.p2.x) &&
+           min(v.p1.y, v.p2.y) <= P.y &&
+           P.y <= max(v.p1.y, v.p2.y);
+}
+
+// two lines: 0 parallel, 1 same line, 2 intersecting
+ll Line_relation(const LineLL& v1, const LineLL& v2) {
+    if (Cross(v1.p2 - v1.p1, v2.p2 - v2.p1) == 0) {
+        if (Cross(v1.p1 - v2.p1, v2.p2 - v2.p1) == 0)
+            return 1;
+        return 0;
+    }
+    return 2;
+}
+
+// point vs polygon (exact integers)
+// returns: 3 vertex, 2 edge, 1 inside, 0 outside
+ll Point_in_polygon(const PointLL& pt, const PointLL* p,
+                    ll n) {
+    for (int i = 1; i <= n; i++) {
+        if (p[i] == pt) return 3;
+    }
+    for (int i = 1; i <= n; i++) {
+        int nxt = (i % n) + 1;
+        LineLL v(p[i], p[nxt]);
+        if (Point_on_seg(pt, v)) return 2;
+    }
+    bool inside = false;
+    for (int i = 1, j = n; i <= n; j = i++) {
+        if ((p[i].y > pt.y) != (p[j].y > pt.y)) {
+            ll dy = p[j].y - p[i].y;
+            ll dx = p[j].x - p[i].x;
+            ll lhs = (pt.x - p[i].x) * dy;
+            ll rhs = (pt.y - p[i].y) * dx;
+            if (dy > 0) {
+                if (lhs < rhs) inside = !inside;
+            } else {
+                if (lhs > rhs) inside = !inside;
+            }
+        }
+    }
+    return inside ? 1 : 0;
+}
+
+// twice the polygon area (signed), as ll
+ll Polygon_area2(const PointLL* p, ll n) {
+    ll area = 0;
+    for (int i = 1; i <= n; i++) {
+        int nxt = (i % n) + 1;
+        area += p[i].x * p[nxt].y - p[i].y * p[nxt].x;
+    }
+    return area;
+}
+
+// distance
+ld Dist(const PointLL& A, const PointLL& B) {
+    return sqrt((ld)Dist2(A, B));
+}
+
+// point to line distance
+ld Dis_point_line(const PointLL& P, const LineLL& v) {
+    return fabs((ld)Cross(P - v.p1, v.p2 - v.p1))
+           / Dist(v.p1, v.p2);
+}
+
+// point to segment distance
+ld Dis_point_seg(const PointLL& P, const LineLL& v) {
+    if (Dot(P - v.p1, v.p2 - v.p1) < 0
+        || Dot(P - v.p2, v.p1 - v.p2) < 0) {
+        return min(Dist(P, v.p1), Dist(P, v.p2));
+    }
+    return Dis_point_line(P, v);
+}
+
+// projection onto a line (floating point)
+Point Point_line_proj(const PointLL& P, const LineLL& v) {
+    ld k = (ld)Dot(v.p2 - v.p1, P - v.p1)
+           / Dot(v.p2 - v.p1, v.p2 - v.p1);
+    return Point(v.p1.x + (v.p2.x - v.p1.x) * k,
+                 v.p1.y + (v.p2.y - v.p1.y) * k);
+}
+
+// reflection in a line (floating point)
+Point Point_line_symmetry(const PointLL& P, const LineLL& v) {
+    Point q = Point_line_proj(P, v);
+    return Point(2 * q.x - P.x, 2 * q.y - P.y);
+}
+
+// line intersection (floating point). Lines must not be
+// parallel.
+Point Cross_point(const PointLL& a, const PointLL& b,
+                  const PointLL& c, const PointLL& d) {
+    ld s1 = (ld)Cross(b - a, c - a);
+    ld s2 = (ld)Cross(b - a, d - a);
+    ld denom = s2 - s1;
+    return Point(
+        (c.x * s2 - d.x * s1) / denom,
+        (c.y * s2 - d.y * s1) / denom
+    );
+}
+
+// rotate a vector (floating point)
+Point Rotate(const PointLL& A, ld rad) {
+    ld c = cos(rad), s = sin(rad);
+    return Point(A.x * c - A.y * s, A.x * s + A.y * c);
 }
 \end{lstlisting}
 
 \entry{Closest pair}{$O(n \log n)$ \quad mem $n$}{%
-Returns the smallest \textbf{squared} distance and the two points. Exact on \code{Pl};
-the only floating point is a deliberately generous \code{sqrtl} bound on the sweep
-window, so rounding cannot lose the answer. Needs $n \ge 2$; duplicate points give 0,
-which is the correct answer.\\[0.3ex]
+Not Ruiming's --- written on his \code{PointLL}. Returns the smallest \textbf{squared}
+distance and the two points, exact. Needs $n \ge 2$; duplicate points give 0.\\[0.3ex]
 Sweep in \code{x}, keep a \code{set} ordered by \code{y} holding everything within the
-current best distance, and only compare against the \code{y}-band. Coordinates up to
-$10^9$ keep \code{dist2} inside \code{ll}.}
+current best distance, and only compare against the \code{y}-band.}
 
-%DEP point
+%DEP point lattice
 %LABEL closest
 \begin{lstlisting}
-pair<ll, pair<Pl,Pl>> closest(vector<Pl> p) {
-    sort(all(p));                        // by x, then y
+pair<ll, pair<PointLL,PointLL>> closest(vector<PointLL> p) {
+    sort(all(p), [](const PointLL& a, const PointLL& b) {
+        return tie(a.x, a.y) < tie(b.x, b.y); });
     ll best = LLONG_MAX;
-    pair<Pl,Pl> bp{p[0], p[1]};
+    pair<PointLL,PointLL> bp{p[0], p[1]};
     set<pii> s;                          // (y, x)
     int j = 0;
     rep(i, 0, (ll)p.size()) {
@@ -216,8 +616,8 @@ pair<ll, pair<Pl,Pl>> closest(vector<Pl> p) {
         auto lo = s.lower_bound({p[i].y - d, LLONG_MIN});
         auto hi = s.upper_bound({p[i].y + d, LLONG_MAX});
         for (auto it = lo; it != hi; ++it) {
-            Pl q(it->second, it->first);
-            ll dd = (p[i] - q).dist2();
+            PointLL q(it->second, it->first);
+            ll dd = Dist2(p[i], q);
             if (dd < best) { best = dd; bp = {q, p[i]}; }
         }
         s.insert({p[i].y, p[i].x});
@@ -227,41 +627,38 @@ pair<ll, pair<Pl,Pl>> closest(vector<Pl> p) {
 \end{lstlisting}
 
 \entry{Circles}{}{%
-\code{circleLine} intersects a circle with the \emph{infinite} line through \code{a,b};
-\code{circleCircle} with another circle. Both return 0, 1 (tangent) or 2 points. For a
-\emph{segment} instead, intersect with the line and then test each result with
-\code{segDist} or a parameter check.\\[0.3ex]
-Two identical circles return \code{\{\}} --- infinitely many points is not something the
-caller can use, so check that case yourself.\\[0.3ex]
-Tangent length from an outside point \code{p} to circle \code{(c,r)} is
-$\sqrt{|pc|^2 - r^2}$. Circle through three points: the circumcentre is the intersection
-of two perpendicular bisectors, i.e. \code{lineInter} of
-\code{(m1, m1+(b-a).perp())} and \code{(m2, m2+(c-a).perp())} with \code{m} the
-midpoints.}
+Not Ruiming's --- written on his \code{Point}. \code{circleLine} intersects a circle
+with the \emph{infinite} line through \code{a,b}; \code{circleCircle} with another
+circle. Both return 0, 1 (tangent) or 2 points. For a segment, filter the results with
+\code{Point\_on\_seg}. Identical circles return \code{\{\}}.\\[0.3ex]
+Tangent length from outside point \code{p} to circle \code{(c,r)} is
+$\sqrt{|pc|^2 - r^2}$. Circumcentre of \code{a,b,c}: \code{Cross\_point} of the two
+perpendicular bisectors.}
 
 %DEP point
 %LABEL circle
 \begin{lstlisting}
-vector<Pd> circleLine(Pd c, ld r, Pd a, Pd b) {
-    Pd ab = b - a;
-    Pd m = a + ab * ((c - a).dot(ab) / ab.dist2());
-    ld h2 = r * r - (m - c).dist2();
+vector<Point> circleLine(Point c, ld r, Point a, Point b) {
+    Vector ab = b - a;
+    Point m = a + ab * (Dot(c - a, ab) / Dot(ab, ab));
+    ld h2 = r * r - Dot(m - c, m - c);
     if (h2 < -1e-12) return {};
     if (h2 <= 1e-12) return {m};
-    Pd h = ab.unit() * sqrtl(h2);
+    Vector h = ab / Len(ab) * sqrtl(h2);
     return {m - h, m + h};
 }
-vector<Pd> circleCircle(Pd c1, ld r1, Pd c2, ld r2) {
-    Pd d = c2 - c1;
-    ld dd = d.dist2(), dist = sqrtl(dd);
+vector<Point> circleCircle(Point c1, ld r1, Point c2, ld r2) {
+    Vector d = c2 - c1;
+    ld dd = Dot(d, d), dist = sqrtl(dd);
     if (dist < 1e-12) return {};          // concentric
     if (dist > r1 + r2 + 1e-12) return {};
     if (dist < fabsl(r1 - r2) - 1e-12) return {};
     ld a = (dd + r1 * r1 - r2 * r2) / (2 * dist);
     ld h2 = r1 * r1 - a * a;
-    Pd m = c1 + d.unit() * a;
+    Vector u = d / dist;
+    Point m = c1 + u * a;
     if (h2 <= 1e-12) return {m};
-    Pd per = d.unit().perp() * sqrtl(h2);
+    Vector per = Vector(-u.y, u.x) * sqrtl(h2);
     return {m - per, m + per};
 }
 \end{lstlisting}

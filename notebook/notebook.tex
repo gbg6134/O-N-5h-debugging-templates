@@ -169,15 +169,22 @@ Single-sided, A4.\par}
 \section{Contest setup}
 
 \entry{Header}{paste first}{%
-Every entry in this document assumes this block. Ranges are \textbf{half-open}
-\code{[l, r)} and graphs are \textbf{0-indexed} unless the entry says otherwise
---- both are stated wherever it matters.}
+Every entry in this document assumes this block: Ruben's and Ruiming's templates
+merged. Ruben's code is \textbf{0-indexed} with \textbf{half-open} ranges
+\code{[l, r)}; Ruiming's is \textbf{1-indexed} with global arrays of size
+\code{MAXN} --- each entry says which.\\[0.3ex]
+\textbf{Update \code{MAXN}} to fit the problem. Ruiming's per-problem globals
+(\code{ll t,n,a[MAXN],ans;}) are left out so they don't clash with the entries;
+add them back as you need. Ruiming's \code{struct matrix} clashes with the
+\code{matrix} typedef --- delete the typedef line when you use it.}
 
 %HEADER
 \begin{lstlisting}
+//UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #include <bits/stdc++.h>
 #include <cassert>   // bits/stdc++.h no longer pulls this in
 using namespace std;
+
 typedef long long ll;
 typedef long double ld;
 typedef unsigned long long ull;
@@ -188,7 +195,10 @@ typedef vector<vi> matrix;
 #define rep(i, a, b) for(ll i = a; i < b; i++)
 #define down(i, b, a) for(ll i = b - 1; i >= a; i--)
 #define all(v) (v).begin(), (v).end()
-const ll INF = 1e18;
+ld eps = 1e-9;
+
+const ll INF=1e18;
+const ll MAXN=206;//UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!
 
 int main(){
     ios_base::sync_with_stdio(false);
@@ -1942,7 +1952,90 @@ ll inv(ll a, ll m) {                 // -1 if none exists
 }
 \end{lstlisting}
 
-\entry{CRT}{$O(\log)$ \quad }{%
+\entry{Fast power}{Ruiming \quad $O(\log p)$}{%
+\code{fast(x, p, m)} is $x^p \bmod m$. Needs $m < 2^{31}$ or \code{x*x} overflows.
+\emph{Euler's theorem}, \emph{Binomials (inverse)} below call it.}
+
+%LABEL fastmod
+%FROM Ruiming/math/Fastmod.cpp
+\begin{lstlisting}
+ll fast(ll x,ll p,ll m){
+    x%=m;
+    ll ans=1;
+    while(p>0){
+        if(p&1){
+            ans*=x;
+            ans%=m;
+        }
+        x*=x;
+        x%=m;
+        p>>=1;
+    }
+    return ans;
+}
+\end{lstlisting}
+
+\entry{Fast gcd}{Ruiming}{%
+Binary (Stein) gcd with \code{\_\_builtin\_ctz}. Both arguments must be
+\textbf{non-zero}: \code{\_\_builtin\_ctz(0)} is undefined.}
+
+%FROM Ruiming/math/Fast_gcd.cpp
+\begin{lstlisting}
+ll gcd(ll a,ll b)
+{
+    ll az=__builtin_ctz(a),bz=__builtin_ctz(b);
+    ll z=min(az,bz);
+    ll dif;
+    b>>=bz;
+    while(a)
+    {
+        a>>=az;
+        dif=b-a;
+        az=__builtin_ctz(dif);
+        if(a<b) b=a;
+        if(dif<0) a=-dif;
+        else a=dif;
+    }
+    return b<<z;
+}
+\end{lstlisting}
+
+\entry{CRT}{Ruiming \quad $O(\sum m_i)$}{%
+A whole program, \textbf{1-indexed}: reads \code{n}, then \code{n} pairs
+\code{m[i] a[i]} meaning $x \equiv a_i \pmod{m_i}$, prints the smallest such $x$.
+Moduli must be \textbf{pairwise coprime}. Merges one congruence at a time by trying
+\code{j = 0..m[i]-1}, so it is linear in the moduli --- use \emph{CRT (general)} when
+they are large or not coprime.}
+
+%FROM Ruiming/math/CRT.cpp
+\begin{lstlisting}
+ll n,lst[MAXN],a[MAXN],m[MAXN],ans[MAXN],k,temp;
+
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cin>>n;
+
+
+    for(int i=1;i<=n;i++){
+        cin>>m[i]>>a[i];
+    }
+
+    ans[1]=a[1];
+    for(int i=2;i<=n;i++){
+        for(ll j=0;j<=m[i]-1;j++){
+            if(((j*m[i-1]+ans[i-1])%m[i])==a[i]){
+                ans[i]=j*m[i-1]+ans[i-1];
+                break;
+            }
+        }
+        m[i]*=m[i-1];
+    }
+    cout<<ans[n]<<'\n';
+}
+\end{lstlisting}
+
+\entry{CRT (general)}{Martin \quad $O(\log)$}{%
 Merges $x \equiv r_1 \pmod{m_1}$ and $x \equiv r_2 \pmod{m_2}$ into one congruence
 modulo $\mathrm{lcm}(m_1,m_2)$. Moduli need \emph{not} be coprime; returns
 \code{\{-1,-1\}} when the two are incompatible. Fold a list by merging one at a
@@ -1964,15 +2057,11 @@ pair<ll,ll> crt(ll r1, ll m1, ll r2, ll m2) {
 }
 \end{lstlisting}
 
-\entry{Sieves}{$O(n \log\log n)$ / $O(n)$ \quad mem $n$}{%
+\entry{Sieves}{$O(n \log\log n)$ \quad mem $n$}{%
 \code{sieve(n)} lists the primes up to \code{n} inclusive. \code{spf(n)} gives the
 smallest prime factor of every number, which factorises any \code{x <= n} in
 $O(\log x)$ by dividing repeatedly --- that is the one to build when you must factorise
-many numbers. \code{phis(n)} computes Euler's $\varphi$ for everything at once by the
-linear sieve.\\[0.3ex]
-$\varphi(n) = n \prod_{p \mid n} (1 - 1/p)$; $\sum_{d \mid n} \varphi(d) = n$. Number of
-divisors and their sum are multiplicative, so the same linear sieve shape computes
-them.}
+many numbers.}
 
 %LABEL sieves
 \begin{lstlisting}
@@ -1992,85 +2081,404 @@ vector<int> spf(int n) {         // smallest prime factor
             if (s[j] == j) s[j] = i;
     return s;
 }
-vi phis(int n) {                      // linear sieve
-    vi phi(n + 1); vector<int> ps;
-    vector<char> comp(n + 1, 0);
-    phi[1] = 1;
-    for (int i = 2; i <= n; i++) {
-        if (!comp[i]) { ps.push_back(i); phi[i] = i - 1; }
-        for (int p : ps) {
-            if ((ll)p * i > n) break;
-            comp[p * i] = 1;
-            if (i % p == 0) { phi[p*i] = p * phi[i]; break; }
-            phi[p * i] = (p - 1) * phi[i];
+\end{lstlisting}
+
+\entry{Euler sieve}{Ruiming \quad $O(n)$}{%
+A whole program: reads \code{n q}, sieves the primes up to \code{n} into
+\code{primes} (linear sieve), then answers \code{q} queries ``the $a$-th prime''.
+\code{MAXN} must exceed \code{n}.}
+
+%FROM Ruiming/math/Euler_sieve.cpp
+\begin{lstlisting}
+vector<ll> primes;
+bool p[MAXN];
+ll n,q;
+
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    cin>>n>>q;
+
+    for(ll i=2;i<=n;i++){
+        if(!p[i]){
+            primes.push_back(i);
+        }
+
+        for(ll j=0;j<primes.size();j++){
+            if(primes[j]*i>n) break;
+            p[primes[j]*i]=1;
+            if(i%primes[j]==0) break;
         }
     }
-    return phi;
+
+    for(int i=1;i<=q;i++){
+        ll a;
+        cin>>a;
+        cout<<primes[a-1]<<'\n';
+    }
 }
 \end{lstlisting}
 
-\entry{Miller-Rabin + Pollard rho}{$O(\log^2 n)$ / $O(n^{1/4})$}{%
-\code{isPrime} is \textbf{deterministic} for every \code{n} that fits in
-\code{ll}: those 12 bases are proven sufficient below $3.3\cdot10^{24}$.
-\code{factor(n)} returns the prime factors with multiplicity, unsorted --- sort if you
-want them grouped. Both use \code{i128} for the multiplications, so \code{n} up to
-$9\cdot10^{18}$ is safe.\\[0.3ex]
-Use trial division up to $\sqrt n$ instead when $n \le 10^{12}$ or so; it is shorter and
-you will not mistype it under pressure.}
+\entry{Linear sieve + Euler phi}{Ruiming \quad $O(n)$ \quad mem $n$}{%
+A whole program: reads \code{n}, fills \code{phi[1..n]} and \code{primes} (the
+Euler / linear sieve, each composite crossed out exactly once). Drop the
+\code{phi} lines for a plain linear sieve. \code{MAXN} must exceed \code{n}.\\[0.3ex]
+$\varphi(n) = n \prod_{p \mid n} (1 - 1/p)$; $\sum_{d \mid n} \varphi(d) = n$. Number of
+divisors and their sum are multiplicative, so the same sieve shape computes them.\\[0.3ex]
+$a^b \bmod m$ with a gigantic $b$: see \emph{Euler's theorem} below.}
+
+%FROM Ruiming/math/Linearphi.cpp
+\begin{lstlisting}
+ll n,phi[MAXN],ans=1;
+bool p[MAXN];
+vector<ll> primes;
+
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cin>>n;
+
+    if(n==1) cout<<0<<'\n';
+    else{
+        phi[1]=1;
+        for(int i=2;i<=n;i++){//modiying euler sieve
+            if(!p[i]){
+                primes.push_back(i);
+                phi[i]=i-1;
+            }
+
+            for(int j=0;j<primes.size();j++){
+                if(primes[j]*i>n) break;
+                p[primes[j]*i]=1;
+                if(i%primes[j]==0){
+                    phi[i*primes[j]]=primes[j]*phi[i];
+                    break;
+                }else{
+                    phi[i*primes[j]]=(primes[j]-1)*phi[i];
+                }
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\entry{Euler phi of one number}{Ruiming \quad $O(\sqrt n)$}{%
+\code{phi(n)} by trial division. For every value up to $n$ at once, use the linear
+sieve above.}
+
+%FROM Ruiming/math/Phi.cpp
+\begin{lstlisting}
+ll phi(ll n) {//Euler's phi function
+    ll ans = 1;
+    for(ll i = 2; i * i <= n; ++ i) {
+        if(n % i == 0) {
+            n /= i;
+            ans *= i - 1;
+            while(n % i == 0) {
+                n /= i;
+                ans *= i;
+            }
+        }
+    }
+    if(n > 1)//optimisation: n>1 means one prime is left
+        ans *= n - 1;
+    return ans;
+}
+\end{lstlisting}
+
+\entry{Prime factorization}{Ruiming \quad $O(\sqrt n)$}{%
+\code{factor(n)} returns the prime factors with multiplicity, in increasing order, by
+trial division. Fine up to $\sim10^{12}$; beyond that use Pollard rho.}
+
+%FROM Ruiming/math/Prime_factorization.cpp
+\begin{lstlisting}
+vector<ll> factor(ll n) {
+    vector<ll> ret;
+    for (ll i = 2; i * i <= n; i++) {
+        while (n % i == 0) {
+            ret.push_back(i);
+            n /= i;
+        }
+    }
+    if (n > 1) { ret.push_back(n); }
+    return ret;
+}
+\end{lstlisting}
+
+\entry{Factorization table}{Ruiming \quad $O(\texttt{MAXN}\sqrt{\texttt{MAXN}})$}{%
+A whole program: \code{fac[i]} is the factorization of every \code{i < MAXN} as a
+\code{map} prime $\rightarrow$ exponent, then reads \code{a[1..n]}. His file uses
+\code{MAXN = 36}.}
+
+%FROM Ruiming/math/Factorization.cpp
+\begin{lstlisting}
+ll n,a[MAXN],ans;
+map<ll,ll> fac[MAXN];
+
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cin>>n;
+
+    for(int i=1;i<MAXN;i++){
+        ll temp=i;
+        for(int j=2;j<=sqrt(temp+0.5);j++){
+            while(temp%j==0){
+                fac[i][j]++;
+                temp/=j;
+            }
+        }
+        if(temp>1){
+            fac[i][temp]++;
+        }
+    }
+
+    for(int i=1;i<=n;i++){
+        cin>>a[i];
+    }
+
+
+}
+\end{lstlisting}
+
+\entry{Euler's theorem (huge exponent)}{Ruiming \quad $O(m + |b|)$}{%
+A whole program: reads \code{a m}, then the exponent \code{b} as a string, prints
+$a^b \bmod m$. Computes $\varphi(m)$, reduces \code{b} mod $\varphi(m)$ while reading,
+and adds $\varphi(m)$ back only if the true $b \ge \varphi(m)$ (\code{flag}) --- which
+is what makes it correct when $\gcd(a,m) \ne 1$. Uses \code{fast} from
+\emph{Fast power}.}
+
+%DEP fastmod
+%FROM Ruiming/math/Eulerthm.cpp
+\begin{lstlisting}
+bool flag;
+
+ll gcd(ll x,ll y){
+    while(x!=y){
+        if(x>y) swap(x,y);
+        if(y%x==0) return x;
+        y-=x*(y/x);
+    }
+    return x;
+}
+
+
+
+ll a,m,phi=1;
+string b;
+
+ll read(){
+    string x;
+    cin>>x;
+    ll ans=0;
+
+    for(int i=0;i<x.size();i++){
+        ans=(ans*10+(x[i]-'0'));
+        if(ans>=phi) flag=true;
+        ans%=phi;
+    }
+    return ans;
+}
+
+int main(){
+    cin>>a>>m;
+    //find the euler function to m
+
+    ll d=gcd(a,m);
+
+    ll temp=m;
+    for(int i=2;i<=m;i++){
+        //here uses temp still makes sure i is a prime
+        if(temp%i==0){
+            ll times=0;
+            while(temp%i==0){
+                times++;
+                temp/=i;//makes sure i is a prime
+            }
+            phi*=pow(i,times-1)*(i-1);
+        }
+    }
+    //if(phi==1) phi=m-1;
+
+    //b needs to be stored as a string and takes mod phi
+    //then we can calculate it with fast mod
+    ll b=read();
+    ll ans;
+    if(flag) ans=fast(a,b+phi,m);
+    else ans=fast(a,b,m);
+
+    //deal with d d|m, will lead up to a ,
+    //should be some period
+
+    cout<<ans<<'\n';
+}
+\end{lstlisting}
+
+\entry{Miller-Rabin (standalone)}{Ruiming \quad $O(12 \log n)$}{%
+A complete file on its own --- \textbf{do not paste it under the header}: its
+\code{typedef \_\_int128 ll} replaces \code{ll}, so \code{n} can exceed
+\code{long long}, with \code{read}/\code{write}/\code{print} fast I/O for
+\code{\_\_int128}. Reads \code{t} numbers, prints \code{Yes}/\code{No}. \code{a * a}
+in \code{qpow} overflows once \code{n} passes $\sim1.3\cdot10^{19}$.}
+
+%STANDALONE
+%FROM Ruiming/math/miller_rabin.cpp
+\begin{lstlisting}
+#include <bits/stdc++.h>
+using namespace std;
+
+typedef __int128 ll;
+typedef pair<int, int> pii;
+
+template<typename T> inline T read() {
+    T x = 0, f = 1; char ch = 0;
+    for(; !isdigit(ch); ch = getchar()) if(ch == '-') f = -1;
+    for(; isdigit(ch); ch = getchar())
+        x = (x << 3) + (x << 1) + (ch - '0');
+    return x * f;
+}
+
+template<typename T> inline void write(T x) {
+    if(x < 0) putchar('-'), x = -x;
+    if(x > 9) write(x / 10);
+    putchar(x % 10 + '0');
+}
+
+template<typename T> inline void print(T x, char ed = '\n') {
+    write(x), putchar(ed);
+}
+
+ll t, n;
+
+ll qpow(ll a, ll b, ll mod) {
+    ll ret = 1;
+    while(b) {
+        if(b & 1) ret = (ret * a) % mod;
+        a = (a * a) % mod;
+        b >>= 1;
+    }
+    return ret % mod;
+}
+
+vector<ll> p = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
+
+bool miller_rabin(ll n) {
+    if(n < 3 || n % 2 == 0) return n == 2;
+    ll u = n - 1, t = 0;
+    while(u % 2 == 0) u /= 2, ++ t;
+    for(auto a : p) {
+        if(n == a) return 1;
+        if(n % a == 0) return 0;
+        ll v = qpow(a, u, n);
+        if(v == 1) continue;
+        ll s = 1;
+        for(; s <= t; ++ s) {
+            if(v == n - 1) break;
+            v = v * v % n;
+        }
+        if(s > t) return 0;
+    }
+    return 1;
+}
+
+int main() {
+    t = read<ll>();
+    while(t --) {
+        n = read<ll>();
+        if(miller_rabin(n)) puts("Yes");
+        else puts("No");
+    }
+    return 0;
+}
+\end{lstlisting}
+
+\entry{Miller-Rabin + Pollard rho}{Ruiming \quad $O(n^{1/4})$}{%
+\code{miller\_rabin(n)} is \textbf{deterministic} for every \code{n} that fits in
+\code{long long} (those 12 bases suffice below $3.3\cdot10^{24}$).\\[0.3ex]
+\code{p.clear(); pollard\_rho(n);} leaves the prime factors of \code{n} in the global
+\code{p}, with multiplicity, unsorted --- sort to group them. Multiplications go through
+\code{i128}, so \code{n} up to $9\cdot10^{18}$ is safe.\\[0.3ex]
+For $n \le 10^{12}$ or so, plain trial division up to $\sqrt n$ is shorter.}
 
 %LABEL pollard
+%FROM Ruiming/math/Pollard_rho.cpp
 \begin{lstlisting}
-ll mulm(ll a, ll b, ll m) { return (i128)a * b % m; }
-ll powm(ll a, ll b, ll m) {
-    ll r = 1; a %= m;
-    for (; b; b >>= 1, a = mulm(a, a, m))
-        if (b & 1) r = mulm(r, a, m);
-    return r;
+#define LL long long
+#define i128 __int128
+mt19937_64 rd(time(0));
+
+i128 ksm(i128 x, i128 y, LL mod)
+{
+    i128 res = 1;
+    x %= mod;
+    while(y)
+    {
+        if(y & 1) res = res * x % mod;
+        y >>= 1;
+        x = x * x % mod;
+    }
+    return res;
 }
-bool isPrime(ll n) {
-    if (n < 2) return false;
-    for (ll p : {2,3,5,7,11,13,17,19,23,29,31,37})
-        if (n % p == 0) return n == p;
-    ll d = n - 1; int s = 0;
-    while (!(d & 1)) d >>= 1, s++;
-    for (ll a : {2,3,5,7,11,13,17,19,23,29,31,37}) {
-        ll x = powm(a, d, n);
-        if (x == 1 || x == n - 1) continue;
-        bool ok = false;
-        rep(i, 1, s) {
-            x = mulm(x, x, n);
-            if (x == n - 1) { ok = true; break; }
+
+bool miller_rabin(LL n)
+{
+    if(n <= 1 || n > 2 && ~n & 1) return false;
+    LL m = n - 1, k = 0;
+    while(~m & 1) m >>= 1, k++;
+    vector<int> s = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
+                     31, 37};
+    for(int a : s)
+    {
+        if(a >= n) break;
+        i128 x = ksm(a, m, n), y;
+        for(int i = 1; i <= k; i++, x = y)
+        {
+            y = x * x % n;
+            if(y == 1 && x != 1 && x != n - 1) return false;
         }
-        if (!ok) return false;
+        if(x != 1) return false;
     }
     return true;
 }
-ll pollard(ll n) {                 // a nontrivial factor
-    if (!(n & 1)) return 2;
-    static mt19937_64 rr(88172645463325252ULL);
-    while (true) {
-        ll x = rr() % n, c = rr() % n + 1, y = x, d = 1;
-        auto f = [&](ll v){ return (mulm(v,v,n)+c) % n; };
-        while (d == 1) {
-            x = f(x); y = f(f(y));
-            if (x == y) break;
-            d = __gcd(x > y ? x - y : y - x, n);
-        }
-        if (d != 1 && d != n) return d;
+
+vector<LL> p;
+void pollard_rho(LL n)
+{
+    if(n <= 1) return;
+    if(miller_rabin(n))
+    {
+        p.push_back(n);
+        return;
     }
-}
-void factor(ll n, vi& out) {
-    if (n == 1) return;
-    if (isPrime(n)) { out.push_back(n); return; }
-    ll d = pollard(n);
-    factor(d, out); factor(n / d, out);
+    LL d = rd() % (n - 1) + 1;
+    auto f = [&](LL x)
+    {
+        return ((i128)x * x + d) % n;
+    };
+    LL x = rd() % (n - 1) + 1, y = f(x), t = 1;
+    while(t == 1)
+    {
+        for(int i = 1; i <= 32; i++)
+        {
+            while(x == y)
+                d = rd() % (n - 1) + 1,
+                x = rd() % (n - 1) + 1, y = f(x);
+            if((i128)t * abs(x - y) % n == 0) break;
+            t = (i128)t * abs(x - y) % n;
+            x = f(x), y = f(f(y));
+        }
+        t = __gcd(n, t);
+    }
+    pollard_rho(t), pollard_rho(n / t);
 }
 \end{lstlisting}
 
 \entry{Binomials mod p}{precompute $O(n)$, query $O(1)$ \quad mem $n$}{%
-Call \code{precompute()} once, then \code{C(n, k)}. \code{MOD} must be \textbf{prime}
-and larger than \code{MAXN}. Returns 0 outside the triangle, so no guards at the call
-site.\\[0.3ex]
+Call \code{precompute()} once, then \code{C(n, k)}. Uses the header's \code{MAXN}, so
+\textbf{raise \code{MAXN}} above the largest \code{n}. \code{MOD} must be
+\textbf{prime} and larger than \code{MAXN}. Returns 0 outside the triangle, so no
+guards at the call site.\\[0.3ex]
 Non-prime modulus, or $n$ small: build Pascal's triangle instead
 (\code{c[i][j] = c[i-1][j-1] + c[i-1][j]}), which needs no inverses. Huge $n$ with small
 prime $p$: Lucas' theorem, multiply \code{C} of the base-$p$ digits.\\[0.3ex]
@@ -2080,7 +2488,7 @@ Stars and bars: ways to write $n$ as an ordered sum of $k$ non-negative parts is
 %DEP modbasics
 %LABEL binom
 \begin{lstlisting}
-const ll MOD = 1000000007, MAXN = 500001;
+const ll MOD = 1000000007;      // MAXN from the header
 ll fact[MAXN], inv_fact[MAXN];
 
 void precompute() {
@@ -2097,75 +2505,455 @@ ll C(ll n, ll k) {
 }
 \end{lstlisting}
 
-\entry{Matrix power}{$O(k^3 \log n)$ \quad mem $k^2$}{%
-For linear recurrences: put the recurrence in a $k\times k$ matrix, raise it, read off
-an entry. Fibonacci is \code{\{\{1,1\},\{1,0\}\}} to the $n$, entry \code{[0][1]}.\\[0.3ex]
-Same code with \code{min}/\code{+} instead of \code{+}/\code{*} gives ``cheapest walk
-using exactly $n$ edges''; with \code{or}/\code{and} it gives reachability in exactly
-$n$ steps. \code{MOD} is only used in \code{mul}, so drop it for those.}
+\entry{Binomials (Pascal)}{Ruiming \quad $O(\texttt{MAXN} \cdot 106)$}{%
+A whole program: Pascal's triangle \code{c[i][j]} mod \code{M} for \code{i < MAXN-1},
+\code{j < 106}. Needs no inverses, so it works for any modulus.}
 
-%DEP modbasics binom
+%FROM Ruiming/math/Combinumber.cpp
 \begin{lstlisting}
-matrix mul(const matrix& a, const matrix& b) {   // % MOD
-    int n = (int)a.size(), m = (int)b[0].size(),
-        k = (int)b.size();
-    matrix c(n, vi(m, 0));
-    rep(i, 0, n) rep(j, 0, k) if (a[i][j])
-        rep(l, 0, m)
-            c[i][l] = (c[i][l] + a[i][j] * b[j][l]) % MOD;
-    return c;
-}
-matrix mpow(matrix a, ll e) {
-    int n = (int)a.size();
-    matrix r(n, vi(n, 0));
-    rep(i, 0, n) r[i][i] = 1;
-    for (; e; e >>= 1, a = mul(a, a))
-        if (e & 1) r = mul(r, a);
-    return r;
+const ll M=1000000007;
+ll c[MAXN][106],t,n,m,k,lst[MAXN],ans;
+
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
+    c[0][0]=1;
+
+    for(int i=1;i<MAXN-1;i++){
+        c[i][0]=1;
+        if(i<106) c[i][i]=1;
+        for(int j=1;j<min(i,105);j++){
+            c[i][j]=c[i-1][j]+c[i-1][j-1];
+            c[i][j]%=M;
+        }
+    }
 }
 \end{lstlisting}
 
-\entry{Gaussian elimination}{$O(n^3)$ \quad mem $n^2$}{%
-Solves $Ax=b$ over the reals. Returns the rank; \code{x} holds \emph{a} solution with
-free variables set to 0. Check consistency yourself afterwards: if a row of \code{a} is
-all zero but its \code{b} is not, there is no solution; if \code{rank < n} and it is
-consistent, there are infinitely many.\\[0.3ex]
-Partial pivoting (largest absolute pivot) is what keeps it stable --- do not remove it.
-\code{eps} at $10^{-9}$ suits inputs of moderate size; raise it for large
-coefficients.\\[0.3ex]
+\entry{Binomials (inverse)}{Ruiming \quad $O(n \log \texttt{MOD})$}{%
+A whole program: reads \code{n k}, fills \code{fac[i]} $= i!$ and \code{inv[i]}
+$= (i!)^{-1}$ mod \code{MOD}, then $\binom{n}{i}$ is \code{comb} in the last loop. Uses
+\code{fast} from \emph{Fast power}. His file uses \code{MAXN = 26}.}
+
+%DEP fastmod
+%FROM Ruiming/math/Combinumber_inv.cpp
+\begin{lstlisting}
+const ll MOD=1e9+7;
+ll t,n,fac[MAXN],inv[MAXN],ans,k;
+
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cin>>n>>k;
+    ll temp=1;
+    for(int i=1;i<=n;i++){
+        temp*=i;
+        temp%=MOD;
+        inv[i]=fast(temp,MOD-2,MOD);
+        fac[i]=temp;
+    }
+
+    fac[0]=1;
+    inv[0]=1;
+
+    for(int i=0;i<=n;i++){
+        ll comb=((fac[n]*inv[i])%MOD*inv[n-i])%MOD;
+    }
+}
+\end{lstlisting}
+
+\entry{Linear inverses}{Ruiming \quad $O(n)$}{%
+A whole program: reads \code{n p} ($p$ prime), prints $i^{-1} \bmod p$ for
+$i = 1..n$, using one modular exponentiation and the identity
+$i^{-1} = (i-1)! \cdot (i!)^{-1}$.}
+
+%FROM Ruiming/math/Linearinverse.cpp
+\begin{lstlisting}
+ll n,p,ans[MAXN],corr[MAXN],now,fac[MAXN],inv[MAXN];
+
+ll fastMod(ll a,ll n,ll mod){
+    ll ans=1;
+    a%=mod;
+    while(n){
+        if(n&1){
+            ans=(ans*a)%mod;
+        }
+        a=(a*a)%mod;
+        n>>=1;
+    }
+    return ans;
+}
+
+int main(){
+    cin>>n>>p;
+
+    fac[0]=1;
+    for(int i=1;i<=n;i++){
+        fac[i]=(fac[i-1]*i)%p;
+    }
+
+    inv[n]=fastMod(fac[n],p-2,p);//inv fac[i]
+    for(int i=n-1;i>=1;i--){
+        inv[i]=((i+1)*inv[i+1])%p;
+    }
+
+    for(int i=1;i<=n;i++){
+        cout<<(fac[i-1]*inv[i])%p<<'\n';
+    }
+}
+\end{lstlisting}
+
+\entry{Matrix power}{Ruiming \quad $O(k^3 \log n)$}{%
+\textbf{1-indexed}, fixed \code{m[MAXN][MAXN]}: set \code{row}/\code{col} and fill
+\code{m[1..row][1..col]}. \code{a * b} needs \code{a.col == b.row};
+\code{pow\_matrix(a, n)} needs \code{a} square.\\[0.3ex]
+\textbf{Delete the header's \code{typedef vector<vi> matrix;}} --- same name. Keep
+\code{MAXN} small (his file uses 106): every \code{matrix} is $8\,\texttt{MAXN}^2$ bytes
+and \code{operator*} builds one on the stack. Clashes with \code{MOD} in
+\emph{Binomials} if both are pasted.\\[0.3ex]
+Linear recurrences: Fibonacci is \code{\{\{1,1\},\{1,0\}\}} to the $n$, entry
+\code{m[1][2]}. With \code{min}/\code{+} instead of \code{+}/\code{*} it gives
+``cheapest walk using exactly $n$ edges''.}
+
+%UNDEF matrix
+%FROM Ruiming/math/Matrix.cpp
+\begin{lstlisting}
+const ll MOD=1e9+7;
+
+struct matrix{
+    ll row,col;
+    ll m[MAXN][MAXN];
+};
+
+matrix operator * (const matrix &a,const matrix &b){
+    //assuming they fits a.col==b.row
+
+    matrix c;
+    memset(c.m,0,sizeof(c.m));
+    c.row=a.row;
+    c.col=b.col;
+    for(int i=1;i<=c.row;i++){
+        for(int j=1;j<=c.col;j++){
+            for(int k=1;k<=a.col;k++){
+                c.m[i][j]+=(a.m[i][k]*b.m[k][j])%MOD;
+                c.m[i][j]%=MOD;
+            }
+        }
+    }
+    return c;
+}
+
+matrix pow_matrix(matrix a,ll n){
+    //assuming a is a square matrix
+    matrix res;
+    memset(res.m,0,sizeof(res.m));
+    res.row=res.col=a.col;
+    for(int i=1;i<MAXN;i++) res.m[i][i]=1;
+
+    while(n){
+        if(n&1) res=res*a;
+        a=a*a;
+        n/=2;
+    }
+
+    return res;
+}
+\end{lstlisting}
+
+\entry{Gaussian elimination}{Ruiming \quad $O(n^3)$}{%
+A whole program, \textbf{1-indexed}, square $n\times n$: reads \code{n}, then each row
+of \code{A} followed by its \code{b[i]}. Prints \code{-1} if there is no solution,
+\code{0} if there are infinitely many, else \code{x1=..} to 2 decimals. Forward
+elimination, then back substitution.\\[0.3ex]
+Zero tests are exact (\code{==0}) and there is no largest-pivot choice: fine for integer
+input, but with real input compare \code{fabs(..) < eps} instead.\\[0.3ex]
 Over $\mathbb{F}_2$ use \code{bitset<N>} rows and \code{\textasciicircum=}, which is
 64x faster and exact --- that is the version for XOR-basis and lights-out problems.
 Mod a prime: replace \code{/} with \code{inv}.}
 
-%LABEL gauss
+%FROM Ruiming/math/gaussjordanelimination.cpp
 \begin{lstlisting}
-// solves a*x = b in place; returns the rank
-int gauss(vector<vector<ld>> a, vector<ld> b,
-          vector<ld>& x) {
-    int n = (int)a.size(), m = (int)a[0].size(), rank = 0;
-    const ld eps = 1e-9;
-    vector<int> where(m, -1);
-    for (int col = 0; col < m && rank < n; col++) {
-        int sel = rank;
-        for (int i = rank; i < n; i++)
-            if (fabsl(a[i][col]) > fabsl(a[sel][col]))
-                sel = i;
-        if (fabsl(a[sel][col]) < eps) continue;
-        swap(a[sel], a[rank]); swap(b[sel], b[rank]);
-        where[col] = rank;
-        for (int i = 0; i < n; i++) if (i != rank) {
-            ld c = a[i][col] / a[rank][col];
-            for (int j = col; j < m; j++)
-                a[i][j] -= c * a[rank][j];
-            b[i] -= c * b[rank];
+ll n;
+double A[MAXN][MAXN],b[MAXN],ans[MAXN];
+stack<pair<ll,ll>> swaped;
+
+int main(){
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+    cin>>n;
+    for(int i=1;i<=n;i++){
+        for(int j=1;j<=n;j++){
+            cin>>A[i][j];
         }
-        rank++;
+        cin>>b[i];
     }
-    x.assign(m, 0);
-    for (int j = 0; j < m; j++)
-        if (where[j] != -1)
-            x[j] = b[where[j]] / a[where[j]][j];
-    return rank;
+
+    ll col=1;
+    for(int i=1;i<=n&&col<=n;i++,col++){//row
+        while(A[i][col]==0&&col<=n){
+            bool found=false;
+            for(int j=i+1;j<=n;j++){
+                if(A[j][col]!=0){
+                    swap(A[j],A[i]);
+                    swap(b[j],b[i]);//swap b as well
+                    found=true;
+                    break;
+                }
+            }
+            if(!found) col++;
+        }
+
+        for(int j=i+1;j<=n;j++){
+            if(A[i][col]==0) break;//excepet bug
+            double fac=A[j][col]/A[i][col];
+            for(int k=col;k<=n;k++){
+                A[j][k]-=fac*A[i][k];
+            }
+            b[j]-=fac*b[i];
+        }
+    }
+
+    bool no=false,p=false;
+    for(int i=1;i<=n;i++){
+        bool zero=true;
+
+        for(int j=1;j<=n;j++){
+            if(A[i][j]!=0){
+                zero=false;
+                break;
+            }
+        }
+        p|=zero;
+
+        if(zero&&b[i]!=0){
+            no=true;
+            break;
+        }
+    }
+
+    if(p){
+        if(no){
+            cout<<-1<<'\n';
+        }else cout<<0<<'\n';
+    }else{
+        for(int i=n;i>=1;i--){
+            for(int j=i+1;j<=n;j++){
+                b[i]-=ans[j]*A[i][j];
+            }
+            ans[i]=b[i]/=A[i][i];
+        }
+        for(int i=1;i<=n;i++){
+            printf("x%d=%.2f\n",i,ans[i]);
+        }
+    }
+}
+\end{lstlisting}
+
+\entry{Big integers}{Ruiming}{%
+Decimal strings, optional leading \code{-}. \code{Bigadd}, \code{Bigsub},
+\code{Bigmul} ($O(nm)$ schoolbook), \code{Bighalf} (non-negative only).
+\code{Scompare}/\code{Ecompare} are $<$ / $\le$ for non-negative numbers.
+\code{BigMod(x, m)} is $x \bmod m$ by binary search on the quotient (the same search
+gives division); \code{BigModSmall(a, mod)} is a big number mod an \code{ll}.\\[0.3ex]
+\code{Bigadd} of a positive and a negative number is \emph{not} handled (those two lines
+are commented out) --- call \code{Bigsub} yourself.}
+
+%FROM Ruiming/math/Big_Integer.cpp
+\begin{lstlisting}
+string Bigadd(string x,string y){
+    //if(x[0]!='-'&&y[0]=='-')
+    //    return Bigsub(x,y.substr(1,y.size()-1));
+    //if(x[0]=='-'&&y[0]!='-')
+    //    return Bigsub(y,x.substr(1,x.size()-1));
+    if(x[0]=='-'&&y[0]=='-') return "-"+Bigadd(
+        y.substr(1,y.size()-1),x.substr(1,x.size()-1));
+
+    int s=max(x.size(),y.size()),a[s+6],b[s+6];
+    int res[s+6];
+    memset(res,0,sizeof(res));
+    memset(a,0,sizeof(a));
+    memset(b,0,sizeof(b));
+
+    for(int i=0;i<x.size();i++) a[i]=x[x.size()-1-i]-'0';
+    for(int i=0;i<y.size();i++) b[i]=y[y.size()-1-i]-'0';
+
+    for(int i=0;i<s;i++){
+        res[i]+=a[i]+b[i];
+        res[i+1]=res[i]/10;
+        res[i]%=10;
+    }
+    string ans="";
+    bool first=false;
+    for(int i=s+1;i>=0;i--){
+        if(res[i]==0&&!first) continue;
+        else{
+            ans+=res[i]+'0';
+            first=true;
+        }
+    }
+    if(ans=="") return "0";
+    return ans;
+}
+
+string Bigsub(string x,string y){
+    if(x[0]!='-'&&y[0]=='-')
+        return Bigadd(x,y.substr(1,y.size()-1));
+    if(x[0]=='-'&&y[0]!='-')
+        return '-' + Bigadd(x.substr(1,x.size()-1),y);
+    if(x[0]=='-'&&y[0]=='-') return Bigsub(
+        y.substr(1,y.size()-1),x.substr(1,x.size()-1));
+
+
+    bool neg=false;
+    if(y.size()>x.size()){
+        swap(x,y);
+        neg=true;
+    }
+
+    if(y.size()==x.size()&&y>x){
+        swap(x,y);//ensures y>x
+        neg=true;
+    }
+
+    int s=max(x.size(),y.size()),a[s+6],b[s+6];
+    int res[s+6];
+    memset(res,0,sizeof(res));
+    memset(a,0,sizeof(a));
+    memset(b,0,sizeof(b));
+
+    for(int i=0;i<x.size();i++) a[i]=x[x.size()-1-i]-'0';
+    for(int i=0;i<y.size();i++) b[i]=y[y.size()-1-i]-'0';
+
+    for(int i=0;i<s;i++){
+        res[i]+=a[i]-b[i];
+        while(res[i]<0){
+            res[i]+=10;
+            res[i+1]--;
+        }
+    }
+    string ans="";
+    if(neg) ans+="-";
+    bool first=false;
+    for(int i=s+1;i>=0;i--){
+        if(res[i]==0&&!first) continue;
+        else{
+            ans+=res[i]+'0';
+            first=true;
+        }
+    }
+    if(ans==""||ans=="-") return "0";
+    return ans;
+}
+
+// multiplication not done like this
+string Bigmul(string x,string y){
+    if(x=="0"||y=="0") return "0";
+
+    if(x[0]!='-'&&y[0]=='-')
+        return "-"+Bigmul(x,y.substr(1,y.size()-1));
+    if(x[0]=='-'&&y[0]!='-')
+        return "-"+Bigmul(y,x.substr(1,x.size()-1));
+    if(x[0]=='-'&&y[0]=='-'){
+        x=x.substr(1,x.size()-1);
+        y=y.substr(1,y.size()-1);
+    }
+
+    int s=max(x.size(),y.size()),a[2*s+6],b[2*s+6];
+    int res[2*s+6];
+    memset(res,0,sizeof(res));
+    memset(a,0,sizeof(a));
+    memset(b,0,sizeof(b));
+
+    for(int i=0;i<x.size();i++) a[i]=x[x.size()-1-i]-'0';
+    for(int i=0;i<y.size();i++) b[i]=y[y.size()-1-i]-'0';
+
+
+    for(int i=0;i<x.size();i++){
+        for(int j=0;j<y.size();j++){
+            res[i+j]+=b[j]*a[i];
+            res[i+j+1]+=res[i+j]/10;//will not increase 2.
+            res[i+j]%=10;
+        }
+    }
+
+    string ans="";
+    bool first=false;
+    for(int i=2*s+5;i>=0;i--){
+        if(res[i]==0&&!first) continue;
+        else{
+            ans+=res[i]+'0';
+            first=true;
+        }
+    }
+    if(ans=="") return "0";
+    return ans;
+}
+
+string Bighalf(string x){
+    int s=x.size(),a[s+6];
+    int res[s+6];
+    memset(res,0,sizeof(res));
+    memset(a,0,sizeof(a));
+
+    for(int i=0;i<x.size();i++) a[i]=x[i]-'0';
+
+    for(int i=0;i<x.size();i++){
+        res[i]+=a[i]/2;
+        if(a[i]%2){
+            a[i+1]+=10;
+        }
+    }
+
+    string ans="";
+    bool first=false;
+    for(int i=0;i<s;i++){
+        if(res[i]==0&&!first) continue;
+        else{
+            ans+=res[i]+'0';
+            first=true;
+        }
+    }
+    if(ans=="") return "0";
+    return ans;
+}
+
+bool Scompare(string x,string y){
+    if(x.size()<y.size()) return true;
+    if(x.size()>y.size()) return false;
+    return x<y;
+}
+
+bool Ecompare(string x,string y){
+    if(x.size()<y.size()) return true;
+    if(x.size()>y.size()) return false;
+    return x<=y;
+}
+
+//can get Bigdiv in the same way
+string BigMod(string x,string m){
+    string start="0",end="1";
+    for(int i=1;i<=x.size()+6;i++) end+="0";
+
+    while(Scompare(start,end)){
+        string temp=Bigadd(end,"1");
+        string mid=Bigadd(start,Bighalf(Bigsub(temp,start)));
+        if(Ecompare(Bigmul(mid,m),x)){
+            start=mid;
+        }else{
+            end=Bigsub(mid,"1");
+        }
+    }
+    string res=Bigsub(x,Bigmul(start,m));
+    return res;
+}
+
+ll BigModSmall(string a,ll mod){
+    ll x=0;
+    for(int i=0;i<a.size();i++){
+        x=((10*x)+(a[i]-'0'))%mod;
+    }
+    return x;
 }
 \end{lstlisting}
 
@@ -2536,210 +3324,610 @@ struct XorTrie {
 
 \section{Geometry}
 
-\entry{Point / vector}{}{%
-One template instead of a float-only \code{Point}. \code{Pl} is \code{P<ll>} and is
-\textbf{exact} --- use it for everything decided by a sign (orientation, hulls,
-point-in-polygon, segment crossing) and you have no \code{eps} to tune and no wrong
-answers. \code{Pd} is \code{P<ld>}, for the metric answers where you must divide or take
-a root.\\[0.3ex]
-\begin{ctab}{0.22}{0.73}
-\code{cross(p)} & $x p_y - y p_x$. Sign = which side; $|\cdot|$ = area of the
-parallelogram.\\
-\code{a.cross(b,c)} & \code{(b-a).cross(c-a)}, the turn at \code{a}.\\
-\code{dot(p)} & $<0$ means the angle is obtuse.\\
-\code{dist2()} & squared length, exact for \code{Pl}. Compare these, never
-\code{dist()}.\\
-\code{perp()} & rotate $90^\circ$ counter-clockwise.\\
-\code{angle()} & \code{atan2}, in $(-\pi, \pi]$.\\
+\entry{Point / vector}{Ruiming}{%
+Ruiming's geometry base: every other entry here builds on it, so it is printed once.
+Floating point, compared through \code{ldcmp(x, y)}, which returns \code{-1}, \code{0},
+\code{1} with tolerance \code{eps}. His geometry files use \code{eps = 1e-6} (the header
+has \code{1e-9}) --- set it in \code{solve()}; for large coordinates make it relative:
+\code{eps = max(eps, 1e-6 * maxabs)}.\\[0.3ex]
+\begin{ctab}{0.27}{0.68}
+\code{Cross(A,B)} & $A_x B_y - A_y B_x$. Sign = which side; $|\cdot|$ = parallelogram
+area.\\
+\code{Area(A,B,C)} & signed triangle area, $>0$ if counter-clockwise.\\
+\code{Angle(A,B)} & unsigned, in $[0,\pi]$.\\
+\code{DirectedAngle} & signed, in $(-\pi,\pi]$, from \code{A} to \code{B}.\\
+\code{Rotate(A,rad)} & counter-clockwise.\\
 \end{ctab}\\[0.3ex]
-\code{unit()} and \code{rotate()} only make sense for \code{Pd} (they divide / call
-\code{cos}); they simply will not compile for \code{Pl}, which is the point.
-Overflow: \code{cross} on coordinates up to $10^9$ reaches $2\cdot10^{18}$, just inside
-\code{ll} --- above that use \code{i128}.\\[0.3ex]
-\code{ccw(a,b,c)} is \code{+1} if \code{a->b->c} turns left, \code{-1} right, \code{0}
-collinear. Nearly every predicate below is built from it.}
+\code{POF} is the ``no point'' sentinel \code{Cross\_Segment} compares against.}
 
 %LABEL point
+%FROM Ruiming/geometry/Point_lines_vectors.cpp
 \begin{lstlisting}
-template<class T> struct P {
-    T x, y;
-    P(T x = 0, T y = 0) : x(x), y(y) {}
-    P operator+(P p) const { return {x + p.x, y + p.y}; }
-    P operator-(P p) const { return {x - p.x, y - p.y}; }
-    P operator*(T k) const { return {x * k, y * k}; }
-    P operator/(T k) const { return {x / k, y / k}; }
-    T dot(P p)   const { return x * p.x + y * p.y; }
-    T cross(P p) const { return x * p.y - y * p.x; }
-    T cross(P a, P b) const {         // turn at *this
-        return (a - *this).cross(b - *this);
-    }
-    T dist2()  const { return x * x + y * y; }
-    ld dist()  const { return sqrtl((ld)dist2()); }
-    ld angle() const { return atan2l((ld)y, (ld)x); }
-    P perp()   const { return {-y, x}; }      // 90 deg ccw
-    P unit() const { return *this / (T)dist(); } // Pd only
-    P rotate(ld a) const {             // Pd only
-        return {x * cosl(a) - y * sinl(a),
-                x * sinl(a) + y * cosl(a)};
-    }
-    bool operator<(P p) const {
-        return tie(x, y) < tie(p.x, p.y);
-    }
-    bool operator==(P p) const {
-        return tie(x, y) == tie(p.x, p.y);
+const ld pi=acos(-1.0);
+//eps=1e-6;//MIGHT GET WA PGA EPS TOO SMALL!!!!!!!!!!!!!!!!!
+
+ll ldcmp(ld x,ld y){
+    if(fabs(x-y)<eps) return 0;
+    else return x<y?-1:1;
+    //is x<y return -1, x>y return 1;
+}
+
+struct Point{
+    ld x,y;
+    Point(): x(0),y(0){}
+    Point(ld x,ld y): x(x),y(y) {}
+
+    Point operator + (Point B){return Point(x+B.x,y+B.y);}
+    Point operator - (Point B){return Point(x-B.x,y-B.y);}
+    Point operator * (ld k){return Point(x*k,y*k);}
+    Point operator / (ld k){return Point(x/k,y/k);}
+    bool operator == (Point B){
+        return ((ldcmp(x-B.x,0)==0)&&(ldcmp(y-B.y,0)==0));}
+    bool operator < (Point B){
+        if (x != B.x) return x < B.x;
+        return y < B.y;
     }
 };
-using Pl = P<ll>;          // exact: signs, hulls, areas
-using Pd = P<ld>;          // metric: distances, intersections
 
-template<class T> int sgn(T v) { return (v > 0) - (v < 0); }
-template<class T> int ccw(P<T> a, P<T> b, P<T> c) {
-    return sgn(a.cross(b, c));
+Point POF=Point(INF,INF);
+
+ld Dist(Point A,Point B){
+    return sqrt((A.x-B.x)*(A.x-B.x)+(A.y-B.y)*(A.y-B.y));
+}
+
+typedef Point Vector;
+
+ld Dot(Vector A,Vector B){return A.x*B.x+A.y*B.y;}
+ld Len(Vector A){return sqrt(Dot(A,A));}
+ld Cross(Vector A,Vector B){return A.x*B.y-A.y*B.x;}
+bool Parallel(Vector A,Vector B){
+    return ldcmp(Cross(A,B),0)==0;}
+ld Angle(Vector A,Vector B){
+    if(Parallel(A,B)) return 0;
+    return acos(Dot(A,B)/Len(A)/Len(B));
+}
+ld DirectedAngle(Vector A, Vector B) {
+    return atan2l(Cross(A,B), Dot(A,B));
+}
+ld Area(Point A,Point B,Point C){return Cross(B-A,C-A)/2;}
+Vector Rotate(Vector A,ld rad){
+    return Vector(A.x*cos(rad)-A.y*sin(rad),
+                  A.x*sin(rad)+A.y*cos(rad));
 }
 \end{lstlisting}
 
-\entry{Segments and lines}{exact where it matters}{%
-\code{onSeg} and \code{segInter} are \textbf{exact} on \code{Pl} and handle every
-degenerate case --- collinear overlap, shared endpoints, zero-length segments. That is
-the usual source of wrong answers, so prefer these over an orientation-only
-test.\\[0.3ex]
-\code{lineInter} works on infinite lines and returns \code{false} when they are parallel
-(including identical). \code{segDist} is point-to-\emph{segment}; for
-segment-to-segment take the min of the four endpoint-to-segment distances, or 0 if they
-cross.}
+\entry{Lines and segments}{Ruiming}{%
+A \code{Line} is two points \code{p1}, \code{p2}; the same struct is used as a
+\emph{segment}. Build it from two points, from a point and an angle, or from
+$ax+by+c=0$.\\[0.3ex]
+\code{Point\_line\_relation}: \code{1} left of the directed line \code{p1->p2},
+\code{2} right, \code{0} on it. \code{Line\_relation}: \code{0} parallel, \code{1} the
+same line, \code{2} intersecting.\\[0.3ex]
+\code{Cross\_point(a,b,c,d)} intersects the \emph{lines} \code{ab} and \code{cd}; it
+divides by zero when they are parallel, so check \code{Line\_relation} first.
+\code{Cross\_Segment} handles the collinear cases through its endpoint checks.}
 
 %DEP point
 %LABEL seg
+%FROM Ruiming/geometry/Point_lines_vectors.cpp
 \begin{lstlisting}
-bool onSeg(Pl p, Pl a, Pl b) {          // p on segment ab
-    return (b - a).cross(p - a) == 0
-        && (a - p).dot(b - p) <= 0;
+struct Line{
+    Point p1,p2;
+    Line(){}
+    Line(Point p1,Point p2): p1(p1),p2(p2){}
+    Line(Point P,ld angle){
+        p1=P;
+        if(ldcmp(angle-pi/2,0)==0){
+            p2=p1+Point(0,1);
+        }else{
+            p2=p1+Point(1,tan(angle));
+        }
+    }
+
+    Line(ld a,ld b,ld c){
+        if(ldcmp(a,0)==0){
+            p1=Point(0,-c/b);
+            p2=Point(1,-c/b);
+        }else if(ldcmp(b,0)==0){
+            p1=Point(-c/a,0);
+            p2=Point(-c/a,1);
+        }else{
+            p1=Point(0,-c/b);
+            p2=Point(1,(-c-a)/b);
+        }
+    }
+};
+
+//for directed lines from p1 to p2
+ll Point_line_relation(Point P, Line v){
+    ll c=ldcmp(Cross(P-v.p1,v.p2-v.p1),0);
+    if(c<0) return 1;//P on the leftside of v
+    if(c>0) return 2;//P on the rightside of v
+    return 0; //P on v
 }
-bool segInter(Pl a, Pl b, Pl c, Pl d) {
-    int d1 = ccw(c, d, a), d2 = ccw(c, d, b);
-    int d3 = ccw(a, b, c), d4 = ccw(a, b, d);
-    if (d1 * d2 < 0 && d3 * d4 < 0) return true;
-    return onSeg(a, c, d) || onSeg(b, c, d)
-        || onSeg(c, a, b) || onSeg(d, a, b);
+
+bool Point_on_seg(Point P, Line v){
+    return ldcmp(Cross(P-v.p1,v.p2-v.p1),0)==0
+         &&ldcmp(Dot(P-v.p1,P-v.p2),0)<=0;
 }
-// lines ab and cd; false if parallel
-bool lineInter(Pd a, Pd b, Pd c, Pd d, Pd& out) {
-    ld den = (b - a).cross(d - c);
-    if (fabsl(den) < 1e-12) return false;
-    out = a + (b - a) * ((c - a).cross(d - c) / den);
-    return true;
+
+ld Dis_point_line(Point P, Line v){
+    return fabs(Cross(P-v.p1,v.p2-v.p1)/Dist(v.p1,v.p2));
 }
-ld segDist(Pd p, Pd a, Pd b) {          // point to segment
-    if (a == b) return (p - a).dist();
-    ld t = (p - a).dot(b - a) / (ld)(b - a).dist2();
-    t = max((ld)0, min((ld)1, t));
-    return (p - (a + (b - a) * t)).dist();
+
+Point Point_line_proj(Point P, Line v){
+    ld k=Dot(v.p2-v.p1,P-v.p1)/Dot(v.p2-v.p1,v.p2-v.p1);
+    return v.p1+(v.p2-v.p1)*k;
+}
+
+Point Point_line_symmetry(Point P, Line v){
+    Point q=Point_line_proj(P,v);
+    return Point(2*q.x-P.x,2*q.y-P.y);
+}
+
+ld Dis_point_seg(Point P, Line v){
+    if(ldcmp(Dot(P-v.p1,v.p2-v.p1),0)<0
+     ||ldcmp(Dot(P-v.p2,v.p1-v.p2),0)<0){
+        return min(Dist(P,v.p1),Dist(P,v.p2));
+    }
+    return Dis_point_line(P,v);
+}
+
+//Directed lines
+ll Line_relation(Line v1, Line v2){
+    if(ldcmp(Cross(v1.p2-v1.p1,v2.p2-v2.p1),0)==0){
+        //overlapp
+        if(Point_line_relation(v1.p1,v2)==0) return 1;
+
+        //parallell
+        else return 0;
+    }
+    //intersect
+    return 2;
+}
+
+//Must have ab,cd not the same
+Point Cross_point(Point a,Point b,Point c,Point d){
+    ld s1=Cross(b-a,c-a);
+    ld s2=Cross(b-a,d-a);
+    return Point(c.x*s2-d.x*s1,c.y*s2-d.y*s1)/(s2-s1);
+}
+
+bool Cross_Segment(Point a,Point b,Point c,Point d){
+    Point P=Cross_point(a,b,c,d);
+    if(P==POF) return 0;
+
+    //special case if all share a line, in line case
+    //whatever works, not in segment case
+    if(Point_on_seg(a,Line(c,d))||Point_on_seg(b,Line(c,d))||
+       Point_on_seg(c,Line(a,b))||Point_on_seg(d,Line(a,b)))
+        return 1;
+
+    if(Point_on_seg(P,Line(a,b))&&Point_on_seg(P,Line(c,d)))
+        return 1;
+    else return 0;
 }
 \end{lstlisting}
 
-\entry{Polygons}{$O(n)$, \code{inConvex} $O(\log n)$}{%
-\code{area2} is \emph{twice} the signed area (shoelace), exact: positive means the
-vertices are counter-clockwise. The real area is \code{abs(area2)/2.0} --- keep the
-doubled integer as long as you can.\\[0.3ex]
-\code{inPoly} works for any simple polygon, convex or not, and returns \code{2} on the
-boundary so you can decide what counts. \code{inConvex} is the $O(\log n)$ version and
-needs a strictly convex counter-clockwise polygon, i.e. exactly what \code{hull}
-returns.\\[0.3ex]
-\textbf{Pick's theorem} (lattice polygon): $A = I + B/2 - 1$, so with \code{area2} and
-the boundary count $B = \sum \gcd(|dx|, |dy|)$ over the edges, the interior count is
-$I = (\texttt{area2} - B + 2)/2$.}
+\entry{Polygons}{Ruiming \quad $O(n)$}{%
+\textbf{1-indexed}: the polygon is \code{p[1..n]}, in order (either direction).
+\code{Point\_in\_polygon} returns \code{3} on a vertex, \code{2} on an edge,
+\code{1} inside, \code{0} outside; it works for non-convex polygons (winding number).
+\code{Polygon\_area} returns the \emph{absolute} area.\\[0.3ex]
+\textbf{Pick's theorem} (lattice polygon): $A = I + B/2 - 1$, with the boundary count
+$B = \sum \gcd(|dx|, |dy|)$ over the edges --- so the interior count is
+$I = (\texttt{Polygon\_area2} - B + 2)/2$ using the exact version in
+\emph{Lattice points}.}
 
 %DEP point seg
 %LABEL poly
+%FROM Ruiming/geometry/Polygon.cpp
 \begin{lstlisting}
-ll area2(const vector<Pl>& p) {        // signed, 2x area
-    ll a = 0; int n = (int)p.size();
-    rep(i, 0, n) a += p[i].cross(p[(i+1) % n]);
-    return a;
-}
-// 0 = outside, 1 = inside, 2 = on the boundary
-int inPoly(const vector<Pl>& p, Pl q) {
-    int n = (int)p.size(), c = 0;
-    rep(i, 0, n) {
-        Pl a = p[i], b = p[(i+1) % n];
-        if (onSeg(q, a, b)) return 2;
-        if (a.y > b.y) swap(a, b);
-        if (a.y <= q.y && q.y < b.y
-            && (b - a).cross(q - a) > 0) c ^= 1;
+//list of points p representing polygon
+ll Point_in_polygon(Point pt, Point *p,ll n){
+    for(int i=1;i<=n;i++){
+        //Point on vetices
+        if(ldcmp(Dist(p[i],pt),0)==0) return 3;
     }
-    return c;
-}
-// p = strictly convex, ccw (what hull() gives)
-int inConvex(const vector<Pl>& p, Pl q) {
-    int n = (int)p.size();
-    if (n == 1) return p[0] == q ? 2 : 0;
-    if (n == 2) return onSeg(q, p[0], p[1]) ? 2 : 0;
-    if (ccw(p[0], p[1], q) < 0) return 0;
-    if (ccw(p[0], p[n-1], q) > 0) return 0;
-    int lo = 1, hi = n - 1;
-    while (hi - lo > 1) {
-        int m = (lo + hi) / 2;
-        if (ccw(p[0], p[m], q) >= 0) lo = m; else hi = m;
+    for(int i=1;i<=n;i++){
+        Line v=Line(p[i],p[i%n+1]);
+
+        //Point on Edge
+        if(Point_on_seg(pt,v)) return 2;
     }
-    int c = ccw(p[lo], p[lo+1], q);
-    if (c < 0) return 0;
-    if (c == 0) return 2;
-    if (onSeg(q, p[0], p[1]) || onSeg(q, p[0], p[n-1]))
-        return 2;
-    return 1;
+    ll num=0;
+    for(int i=1;i<=n;i++){
+        ll j=i%n+1;
+        ll c=ldcmp(Cross(pt-p[j],p[i]-p[j]),0);
+        ll u=ldcmp(p[i].y-pt.y,0);
+        ll v=ldcmp(p[j].y-pt.y,0);
+        if(c>0&&u<0&&v>=0) num++;
+        if(c<0&&u>=0&&v<0) num--;
+    }
+    //return 1 is inside, 0 is outside
+    return num!=0;
+}
+
+ld Polygon_area(Point *p,ll n){
+    ld area=0;
+    for(int i=1;i<=n;i++){
+        area+=Cross(p[i],p[i%n+1]);
+    }
+    return abs(area/2.0);
 }
 \end{lstlisting}
 
-\entry{Convex hull}{$O(n \log n)$ \quad mem $n$}{%
-Andrew's monotone chain. Counter-clockwise, \textbf{no collinear points}, first vertex
-not repeated at the end. Duplicates in the input are removed. Fewer than 3 distinct
-points come back as-is.\\[0.3ex]
-To \emph{keep} collinear boundary points change \code{<= 0} to \code{< 0} --- but then
-the ``is every input point on the hull'' test becomes
-\code{hull(p).size() == p.size()}, which is what Ruiming's original was checking.\\[0.3ex]
-Diameter of a point set = farthest pair on the hull: rotating calipers, or just
-$O(h^2)$ over hull vertices when $h$ is small. Minimum-width / minimum-area enclosing
-rectangle also come from calipers on the hull.}
+\entry{Convex hull}{Ruiming \quad $O(n \log n)$}{%
+Andrew's monotone chain, \textbf{1-indexed}: input \code{p[1..n]} (sorted and
+deduplicated in place), output \code{ch[1..v]}, returns \code{v}. Collinear points on
+the boundary are \textbf{kept}; change both \code{<0} to \code{<=0} to drop them.\\[0.3ex]
+The final \code{sort}/\code{unique} leaves \code{ch} sorted by $(x,y)$, \emph{not} in
+hull order --- fine for counting or membership (``are all points on the hull'' is
+\code{Convex\_Hull(p,n,ch)==n}). For the actual cycle, delete those two lines; then
+\code{ch[v]} repeats \code{ch[1]}, so use \code{v-1} points.\\[0.3ex]
+Diameter of a point set = farthest pair on the hull (rotating calipers, or $O(h^2)$ when
+$h$ is small).}
 
 %DEP point
 %LABEL hull
+%FROM Ruiming/geometry/Convex_Hull.cpp
 \begin{lstlisting}
-vector<Pl> hull(vector<Pl> p) {
-    sort(all(p)); p.erase(unique(all(p)), p.end());
-    int n = (int)p.size();
-    if (n < 3) return p;
-    vector<Pl> h;
-    rep(phase, 0, 2) {              // lower, then upper
-        size_t start = h.size();
-        for (Pl q : p) {
-            while (h.size() >= start + 2
-                   && ccw(h[h.size()-2], h.back(), q) <= 0)
-                h.pop_back();
-            h.push_back(q);
+ll Convex_Hull(Point *p, ll n,Point *ch){
+    sort(p+1,p+n+1);
+    n=unique(p+1,p+n+1)-(p+1);
+    if (n == 1) { ch[1] = p[1]; return 1; }
+    if (n == 2) { ch[1] = p[1]; ch[2] = p[2]; return 2; }
+
+    ll v=0;
+
+    for(int i=1;i<=n;i++){
+        while(v>1&&
+              ldcmp(Cross(ch[v]-ch[v-1],p[i]-ch[v]),0)<0){
+            v--;
         }
-        h.pop_back();
-        reverse(all(p));
+        ch[++v]=p[i];
     }
-    return h;
+
+    ll j=v;
+    for(int i=n-1;i>=1;i--){
+        //<=0 do not count points on the side of convex hull
+        while(v>j&&
+              ldcmp(Cross(ch[v]-ch[v-1],p[i]-ch[v]),0)<0){
+            v--;
+        }
+        ch[++v]=p[i];
+    }
+
+    sort(ch+1,ch+v+1);
+    v=unique(ch+1,ch+v+1)-(ch+1);
+    //might include double points on the line case
+    return v;
+}
+\end{lstlisting}
+
+\entry{Half-plane intersection}{Ruiming \quad $O(n \log n)$}{%
+Each \code{Line} keeps the half-plane on its \textbf{left} (\code{p1->p2}).
+\code{HPI(L)} returns the vertices of the intersection, counter-clockwise, or
+\code{\{\}} if it is empty or has fewer than 3 vertices. It assumes the result is
+\textbf{bounded} --- add four big box edges if it might not be.\\[0.3ex]
+This file has its \textbf{own \code{Line}} (adds direction \code{v}, angle \code{ang} and
+\code{operator<}): use it \emph{instead of} the one in \emph{Lines and segments}. The
+functions there are textually identical in his HPI file and work with this
+\code{Line} too. (Its \code{Point::operator<} also compares \code{x} through
+\code{ldcmp}; \code{HPI} itself does not need it.)\\[0.3ex]
+Area of the intersection of convex polygons: push every edge of every polygon (each
+counter-clockwise), then the shoelace sum over \code{HPI}'s output.}
+
+%DEP point
+%FROM Ruiming/geometry/Half_Plane_Intersect.cpp
+%LABEL hpi
+\begin{lstlisting}
+struct Line {
+    Point p1, p2;
+    Vector v;
+    ld ang;
+
+    Line() : p1(0,0), p2(0,0), v(0,0), ang(0) {}
+
+    Line(Point p1, Point p2) : p1(p1), p2(p2) {
+        v = p2 - p1;
+        ang = atan2l(v.y, v.x);
+    }
+
+    Line(Point P, ld angle) : p1(P) {
+        p2 = p1 + Point(cosl(angle), sinl(angle));
+        v = p2 - p1;
+        ang = atan2l(v.y, v.x);
+    }
+
+    Line(ld a, ld b, ld c) {
+        if (ldcmp(a, 0) == 0) {
+            p1 = Point(0, -c/b);
+            p2 = Point(1, -c/b);
+        } else if (ldcmp(b, 0) == 0) {
+            p1 = Point(-c/a, 0);
+            p2 = Point(-c/a, 1);
+        } else {
+            p1 = Point(0, -c/b);
+            p2 = Point(1, (-c-a)/b);
+        }
+        v = p2 - p1;
+        ang = atan2l(v.y, v.x);
+    }
+
+    bool operator<(Line L) {
+        if (ldcmp(ang, L.ang) != 0) return ang < L.ang;
+        return ldcmp(Cross(L.p1 - p1, L.p2 - p1), 0) > 0;
+    }
+};
+
+bool OnLeft(Line L, Point p) {
+    return ldcmp(Cross(L.v, p - L.p1), 0) >= 0;
+}
+
+Point Cross_point(Line a, Line b) {
+    Vector u = a.p1 - b.p1;
+    ld t = Cross(b.v, u) / Cross(a.v, b.v);
+    return a.p1 + a.v * t;
+}
+
+vector<Point> HPI(vector<Line> L) {
+    int n = L.size();
+    if (n == 0) return {};
+
+    sort(L.begin(), L.end());
+
+    // dedupe by polar angle, keep only the leftmost one
+    vector<Line> lines;
+    for (int i = 0; i < n; i++) {
+        if (i > 0 && ldcmp(L[i].ang, L[i-1].ang) == 0)
+            continue;
+        lines.push_back(L[i]);
+    }
+    n = lines.size();
+    if (n <= 2) return {};
+
+    vector<Line> q(n);
+    vector<Point> p(n);
+    int first = 0, last = 0;
+    q[0] = lines[0];
+
+    for (int i = 1; i < n; i++) {
+        while (first < last && !OnLeft(lines[i], p[last-1]))
+            last--;
+        while (first < last && !OnLeft(lines[i], p[first]))
+            first++;
+
+        q[++last] = lines[i];
+
+        if (ldcmp(Cross(q[last].v, q[last-1].v), 0) == 0) {
+            last--;
+            if (OnLeft(q[last], lines[i].p1))
+                q[last] = lines[i];
+        }
+
+        if (first < last) {
+            p[last-1] = Cross_point(q[last-1], q[last]);
+        }
+    }
+
+    while (first < last && !OnLeft(q[first], p[last-1]))
+        last--;
+    if (last - first <= 1) return {};
+
+    p[last] = Cross_point(q[last], q[first]);
+
+    vector<Point> ans;
+    for (int i = first; i <= last; i++) ans.push_back(p[i]);
+    return ans;
+}
+\end{lstlisting}
+
+\entry{Lattice points (exact)}{Ruiming}{%
+The integer versions: \code{PointLL} / \code{LineLL}, no \code{eps}, so every sign
+test is \textbf{exact}. Same names and return codes as the floating-point functions
+(they overload), plus \code{Dist2} and \code{Area2} / \code{Polygon\_area2}, which are
+\emph{twice} the signed area. Projection, reflection, intersection and rotation return a
+floating \code{Point}.\\[0.3ex]
+\code{Point\_in\_polygon} is 1-indexed and returns \code{3} vertex, \code{2} edge,
+\code{1} inside, \code{0} outside. Coordinates up to $10^9$ keep \code{Cross} inside
+\code{ll}.}
+
+%DEP point
+%LABEL lattice
+%FROM Ruiming/geometry/Lattic_Point.cpp
+\begin{lstlisting}
+// ==================== integer point ====================
+struct PointLL {
+    ll x, y;
+    PointLL() : x(0), y(0) {}
+    PointLL(ll x, ll y) : x(x), y(y) {}
+
+    PointLL operator+(const PointLL& B) const {
+        return PointLL(x + B.x, y + B.y); }
+    PointLL operator-(const PointLL& B) const {
+        return PointLL(x - B.x, y - B.y); }
+    PointLL operator*(ll k) const {
+        return PointLL(x * k, y * k); }
+    PointLL operator/(ll k) const {
+        return PointLL(x / k, y / k); }
+    bool operator==(const PointLL& B) const {
+        return x == B.x && y == B.y; }
+    bool operator!=(const PointLL& B) const {
+        return !(*this == B); }
+};
+
+typedef PointLL VectorLL;
+
+// dot product
+ll Dot(const VectorLL& A, const VectorLL& B) {
+    return A.x * B.x + A.y * B.y;
+}
+
+// cross product
+ll Cross(const VectorLL& A, const VectorLL& B) {
+    return A.x * B.y - A.y * B.x;
+}
+
+// squared distance
+ll Dist2(const PointLL& A, const PointLL& B) {
+    ll dx = A.x - B.x, dy = A.y - B.y;
+    return dx * dx + dy * dy;
+}
+
+// twice the signed area
+ll Area2(const PointLL& A, const PointLL& B,
+         const PointLL& C) {
+    return Cross(B - A, C - A);
+}
+
+// parallel test
+bool Parallel(const VectorLL& A, const VectorLL& B) {
+    return Cross(A, B) == 0;
+}
+
+// line (integer points)
+struct LineLL {
+    PointLL p1, p2;
+    LineLL() {}
+    LineLL(const PointLL& p1, const PointLL& p2)
+        : p1(p1), p2(p2) {}
+};
+
+// point vs line: 1 left, 2 right, 0 on the line
+ll Point_line_relation(const PointLL& P, const LineLL& v) {
+    ll c = Cross(P - v.p1, v.p2 - v.p1);
+    if (c < 0) return 1;
+    if (c > 0) return 2;
+    return 0;
+}
+
+// is the point on the segment
+bool Point_on_seg(const PointLL& P, const LineLL& v) {
+    return Cross(P - v.p1, v.p2 - v.p1) == 0 &&
+           min(v.p1.x, v.p2.x) <= P.x &&
+           P.x <= max(v.p1.x, v.p2.x) &&
+           min(v.p1.y, v.p2.y) <= P.y &&
+           P.y <= max(v.p1.y, v.p2.y);
+}
+
+// two lines: 0 parallel, 1 same line, 2 intersecting
+ll Line_relation(const LineLL& v1, const LineLL& v2) {
+    if (Cross(v1.p2 - v1.p1, v2.p2 - v2.p1) == 0) {
+        if (Cross(v1.p1 - v2.p1, v2.p2 - v2.p1) == 0)
+            return 1;
+        return 0;
+    }
+    return 2;
+}
+
+// point vs polygon (exact integers)
+// returns: 3 vertex, 2 edge, 1 inside, 0 outside
+ll Point_in_polygon(const PointLL& pt, const PointLL* p,
+                    ll n) {
+    for (int i = 1; i <= n; i++) {
+        if (p[i] == pt) return 3;
+    }
+    for (int i = 1; i <= n; i++) {
+        int nxt = (i % n) + 1;
+        LineLL v(p[i], p[nxt]);
+        if (Point_on_seg(pt, v)) return 2;
+    }
+    bool inside = false;
+    for (int i = 1, j = n; i <= n; j = i++) {
+        if ((p[i].y > pt.y) != (p[j].y > pt.y)) {
+            ll dy = p[j].y - p[i].y;
+            ll dx = p[j].x - p[i].x;
+            ll lhs = (pt.x - p[i].x) * dy;
+            ll rhs = (pt.y - p[i].y) * dx;
+            if (dy > 0) {
+                if (lhs < rhs) inside = !inside;
+            } else {
+                if (lhs > rhs) inside = !inside;
+            }
+        }
+    }
+    return inside ? 1 : 0;
+}
+
+// twice the polygon area (signed), as ll
+ll Polygon_area2(const PointLL* p, ll n) {
+    ll area = 0;
+    for (int i = 1; i <= n; i++) {
+        int nxt = (i % n) + 1;
+        area += p[i].x * p[nxt].y - p[i].y * p[nxt].x;
+    }
+    return area;
+}
+
+// distance
+ld Dist(const PointLL& A, const PointLL& B) {
+    return sqrt((ld)Dist2(A, B));
+}
+
+// point to line distance
+ld Dis_point_line(const PointLL& P, const LineLL& v) {
+    return fabs((ld)Cross(P - v.p1, v.p2 - v.p1))
+           / Dist(v.p1, v.p2);
+}
+
+// point to segment distance
+ld Dis_point_seg(const PointLL& P, const LineLL& v) {
+    if (Dot(P - v.p1, v.p2 - v.p1) < 0
+        || Dot(P - v.p2, v.p1 - v.p2) < 0) {
+        return min(Dist(P, v.p1), Dist(P, v.p2));
+    }
+    return Dis_point_line(P, v);
+}
+
+// projection onto a line (floating point)
+Point Point_line_proj(const PointLL& P, const LineLL& v) {
+    ld k = (ld)Dot(v.p2 - v.p1, P - v.p1)
+           / Dot(v.p2 - v.p1, v.p2 - v.p1);
+    return Point(v.p1.x + (v.p2.x - v.p1.x) * k,
+                 v.p1.y + (v.p2.y - v.p1.y) * k);
+}
+
+// reflection in a line (floating point)
+Point Point_line_symmetry(const PointLL& P, const LineLL& v) {
+    Point q = Point_line_proj(P, v);
+    return Point(2 * q.x - P.x, 2 * q.y - P.y);
+}
+
+// line intersection (floating point). Lines must not be
+// parallel.
+Point Cross_point(const PointLL& a, const PointLL& b,
+                  const PointLL& c, const PointLL& d) {
+    ld s1 = (ld)Cross(b - a, c - a);
+    ld s2 = (ld)Cross(b - a, d - a);
+    ld denom = s2 - s1;
+    return Point(
+        (c.x * s2 - d.x * s1) / denom,
+        (c.y * s2 - d.y * s1) / denom
+    );
+}
+
+// rotate a vector (floating point)
+Point Rotate(const PointLL& A, ld rad) {
+    ld c = cos(rad), s = sin(rad);
+    return Point(A.x * c - A.y * s, A.x * s + A.y * c);
 }
 \end{lstlisting}
 
 \entry{Closest pair}{$O(n \log n)$ \quad mem $n$}{%
-Returns the smallest \textbf{squared} distance and the two points. Exact on \code{Pl};
-the only floating point is a deliberately generous \code{sqrtl} bound on the sweep
-window, so rounding cannot lose the answer. Needs $n \ge 2$; duplicate points give 0,
-which is the correct answer.\\[0.3ex]
+Not Ruiming's --- written on his \code{PointLL}. Returns the smallest \textbf{squared}
+distance and the two points, exact. Needs $n \ge 2$; duplicate points give 0.\\[0.3ex]
 Sweep in \code{x}, keep a \code{set} ordered by \code{y} holding everything within the
-current best distance, and only compare against the \code{y}-band. Coordinates up to
-$10^9$ keep \code{dist2} inside \code{ll}.}
+current best distance, and only compare against the \code{y}-band.}
 
-%DEP point
+%DEP point lattice
 %LABEL closest
 \begin{lstlisting}
-pair<ll, pair<Pl,Pl>> closest(vector<Pl> p) {
-    sort(all(p));                        // by x, then y
+pair<ll, pair<PointLL,PointLL>> closest(vector<PointLL> p) {
+    sort(all(p), [](const PointLL& a, const PointLL& b) {
+        return tie(a.x, a.y) < tie(b.x, b.y); });
     ll best = LLONG_MAX;
-    pair<Pl,Pl> bp{p[0], p[1]};
+    pair<PointLL,PointLL> bp{p[0], p[1]};
     set<pii> s;                          // (y, x)
     int j = 0;
     rep(i, 0, (ll)p.size()) {
@@ -2752,8 +3940,8 @@ pair<ll, pair<Pl,Pl>> closest(vector<Pl> p) {
         auto lo = s.lower_bound({p[i].y - d, LLONG_MIN});
         auto hi = s.upper_bound({p[i].y + d, LLONG_MAX});
         for (auto it = lo; it != hi; ++it) {
-            Pl q(it->second, it->first);
-            ll dd = (p[i] - q).dist2();
+            PointLL q(it->second, it->first);
+            ll dd = Dist2(p[i], q);
             if (dd < best) { best = dd; bp = {q, p[i]}; }
         }
         s.insert({p[i].y, p[i].x});
@@ -2763,41 +3951,38 @@ pair<ll, pair<Pl,Pl>> closest(vector<Pl> p) {
 \end{lstlisting}
 
 \entry{Circles}{}{%
-\code{circleLine} intersects a circle with the \emph{infinite} line through \code{a,b};
-\code{circleCircle} with another circle. Both return 0, 1 (tangent) or 2 points. For a
-\emph{segment} instead, intersect with the line and then test each result with
-\code{segDist} or a parameter check.\\[0.3ex]
-Two identical circles return \code{\{\}} --- infinitely many points is not something the
-caller can use, so check that case yourself.\\[0.3ex]
-Tangent length from an outside point \code{p} to circle \code{(c,r)} is
-$\sqrt{|pc|^2 - r^2}$. Circle through three points: the circumcentre is the intersection
-of two perpendicular bisectors, i.e. \code{lineInter} of
-\code{(m1, m1+(b-a).perp())} and \code{(m2, m2+(c-a).perp())} with \code{m} the
-midpoints.}
+Not Ruiming's --- written on his \code{Point}. \code{circleLine} intersects a circle
+with the \emph{infinite} line through \code{a,b}; \code{circleCircle} with another
+circle. Both return 0, 1 (tangent) or 2 points. For a segment, filter the results with
+\code{Point\_on\_seg}. Identical circles return \code{\{\}}.\\[0.3ex]
+Tangent length from outside point \code{p} to circle \code{(c,r)} is
+$\sqrt{|pc|^2 - r^2}$. Circumcentre of \code{a,b,c}: \code{Cross\_point} of the two
+perpendicular bisectors.}
 
 %DEP point
 %LABEL circle
 \begin{lstlisting}
-vector<Pd> circleLine(Pd c, ld r, Pd a, Pd b) {
-    Pd ab = b - a;
-    Pd m = a + ab * ((c - a).dot(ab) / ab.dist2());
-    ld h2 = r * r - (m - c).dist2();
+vector<Point> circleLine(Point c, ld r, Point a, Point b) {
+    Vector ab = b - a;
+    Point m = a + ab * (Dot(c - a, ab) / Dot(ab, ab));
+    ld h2 = r * r - Dot(m - c, m - c);
     if (h2 < -1e-12) return {};
     if (h2 <= 1e-12) return {m};
-    Pd h = ab.unit() * sqrtl(h2);
+    Vector h = ab / Len(ab) * sqrtl(h2);
     return {m - h, m + h};
 }
-vector<Pd> circleCircle(Pd c1, ld r1, Pd c2, ld r2) {
-    Pd d = c2 - c1;
-    ld dd = d.dist2(), dist = sqrtl(dd);
+vector<Point> circleCircle(Point c1, ld r1, Point c2, ld r2) {
+    Vector d = c2 - c1;
+    ld dd = Dot(d, d), dist = sqrtl(dd);
     if (dist < 1e-12) return {};          // concentric
     if (dist > r1 + r2 + 1e-12) return {};
     if (dist < fabsl(r1 - r2) - 1e-12) return {};
     ld a = (dd + r1 * r1 - r2 * r2) / (2 * dist);
     ld h2 = r1 * r1 - a * a;
-    Pd m = c1 + d.unit() * a;
+    Vector u = d / dist;
+    Point m = c1 + u * a;
     if (h2 <= 1e-12) return {m};
-    Pd per = d.unit().perp() * sqrtl(h2);
+    Vector per = Vector(-u.y, u.x) * sqrtl(h2);
     return {m - per, m + per};
 }
 \end{lstlisting}
@@ -2991,7 +4176,7 @@ vertices. A connected graph has an Euler circuit iff every degree is even (direc
 $\le 5$. Four colours always suffice, five are easy to find.\\[0.3ex]
 \textbf{Spanning trees:} Cayley gives $n^{n-2}$ labelled trees on $n$ vertices; for a
 general graph it is any cofactor of the Laplacian (Matrix-Tree), i.e. one
-\code{gauss} determinant.\\[0.3ex]
+determinant by Gaussian elimination.\\[0.3ex]
 \textbf{Pick:} a lattice polygon has $A = I + B/2 - 1$, with
 $B = \sum \gcd(|dx|,|dy|)$ over the edges.}
 

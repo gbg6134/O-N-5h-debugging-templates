@@ -9,8 +9,9 @@
 tools/build.sh    # src/*.tex  ->  notebook.tex   (run after any edit)
 tools/pdf.sh      # notebook.tex -> build/pdf/notebook.pdf  (tectonic)
 tools/lint.sh     # unescaped % _ # &, unbalanced $   -> 0 issues
-tools/check.sh    # every listing compiled, gnu++17 + gnu++20 -> 116 ok, 0 failed
-tools/smoke.sh    # templates vs brute force            -> 16 tests, 0 failed
+tools/check.sh    # every listing compiled, gnu++17 + gnu++20 -> 148 ok, 0 failed
+tools/smoke.sh    # templates vs brute force            -> 17 tests, 0 failed
+tools/verbatim.sh # %FROM listings vs their source files -> 23 match, 0 changed
 tools/pages.sh    # rough page estimate without compiling (reads high: 18.5 vs 15 content pages)
 ```
 
@@ -19,8 +20,8 @@ PDF: `tools/pdf.sh` locally (tectonic, self-contained, downloads its TeX bundle 
 first run), or paste `notebook.tex` into Overleaf and hit Recompile. Tectonic is
 XeTeX-based and Overleaf defaults to pdfLaTeX; both compile this file cleanly.
 
-**Current output: 16 pages (front page + 15 of content), 0 overfull hboxes,
-82 index entries.**
+**Current output: 22 pages (front page + 21 of content), 0 overfull hboxes,
+98 index entries.**
 
 Team name, university and members are three macros at the top of
 `src/00-preamble.tex` (`\team`, `\uni`/`\unishort`, `\members`); the front page and
@@ -30,7 +31,7 @@ the running header both read from them, so change them in one place.
 
 | Rule | How |
 | --- | --- |
-| max **25 pages** | **16** incl. the front page, measured from the compiled PDF — 9 pages of slack |
+| max **25 pages** | **22** incl. the front page, measured from the compiled PDF — 3 pages of slack |
 | single-sided, A4 | A4 landscape (still "A4 size"); print one-sided |
 | university name **upper left** | `\lhead{\uni}` = "KTH Royal Institute of Technology" |
 | page number **upper right** | `\rhead{\thepage}` |
@@ -81,8 +82,8 @@ depends on it.
 | Tool | What it actually proves |
 | --- | --- |
 | `lint.sh` | no unescaped specials, inline math balanced, `tabular`/`ctab`/`begingroup` balanced |
-| `check.sh` | all 116 listings compile under **both** gnu++17 and gnu++20 |
-| `smoke.sh` | 16 randomised tests, each against an independent oracle |
+| `check.sh` | all 148 listings compile under **both** gnu++17 and gnu++20 |
+| `smoke.sh` | 17 randomised tests, each against an independent oracle |
 
 `%HEADER`, `%NOCOMPILE`, `%LABEL <name>` and `%DEP <a> <b>` markers in `src/*.tex`
 drive the extraction. `%NOCOMPILE` is Ruben's existing convention for fragments.
@@ -102,15 +103,16 @@ What the smoke tests check:
 - **wdsu** — contradictions detected, differences consistent
 - **ntt** — 300 convolutions vs naive O(n²), plus n=5000
 - **crt** — 4000 cases vs exhaustive search, non-coprime moduli included
-- **pollard** — `isPrime` vs a sieve to 2e5; 304 factorisations multiply back, incl. 4e18
+- **pollard** — `miller_rabin` vs a sieve to 2e5; 304 factorisations multiply back, incl. 4e18
 - **binom** — `C(n,k)` vs Pascal, out-of-range guards
-- **gauss** — full-rank solutions satisfy `A*x == b`
+- **gauss** — the whole program fed systems with a unique / no / infinitely many solutions
 - **strings** — kmp, period, zfunc, Manacher `isPal`, hashing, suffix array + lcp, Aho
-- **geometry** — `segInter` vs an exact integer oracle (200k cases), `hull` vs an
-  O(n³) oracle, `inConvex` vs `inPoly`, `area2`, `closest` vs O(n²), circles
+- **geometry** — `Cross_Segment` vs an exact integer oracle (200k cases), `Convex_Hull` vs an
+  O(n³) oracle, both `Point_in_polygon`s vs an exact oracle, `Polygon_area`, `closest` vs O(n²), circles
+- **hpi** — area of `HPI` over 1–4 random convex polygons vs Sutherland–Hodgman clipping
 
-The document itself compiles clean under tectonic: **16 pages** (front page + 15), **0 overfull
-hboxes**, 82 index entries. Two layout bugs were found and fixed by actually looking
+The document itself compiles clean under tectonic: **22 pages** (front page + 21), **0 overfull
+hboxes**, 98 index entries. Two layout bugs were found and fixed by actually looking
 at the compiled output rather than trusting the source:
 
 - Sections were numbered in the index, and since `\cftsecnumwidth` is `0em` the number
@@ -199,16 +201,64 @@ functions. Names are kept wherever there was a real interface.
 | `Manacher` | Ruiming + martin | **was** inline in `main` over a `#`-padded buffer. Now a struct with `d1`, `d2` and `isPal(l, r)` |
 | `SuffixArray` | `martin/claude/.../suffix_array.cpp` | O(n log n) instead of O(n log²n); one struct holding `sa`, `rnk`, `lcp` |
 | `Aho` | `martin/claude/.../aho_corasick.cpp` | output links added (so it hits its advertised complexity) and duplicate patterns now work; `match(txt, f)` callback instead of a returned matrix |
-| `gauss` | `Ruiming/math/gaussjordanelimination.cpp` | **was** globals `A`/`b`/`ans` with the answer printed from `main`. Now returns the rank and fills `x`; partial pivoting added |
-| `crt` | `Ruiming/math/CRT.cpp` | **was** an `O(m)` search loop over residues. Now `extGcd`-based, handles non-coprime moduli, returns `{-1,-1}` if inconsistent |
-| `isPrime`, `factor` | `Ruiming/math/miller_rabin.cpp`, `Pollard_rho.cpp` | **was** `getchar` fast-IO and `typedef __int128 ll`. Now plain `ll` with `i128` only inside `mulm` |
-| geometry | the four `Ruiming/geometry/*.cpp` | **replaced**, as you asked: one `P<T>` template. `Pl` = `P<ll>` is exact, `Pd` = `P<ld>` for metric work. **No global mutable `eps`**, and arrays are `vector`, **0-indexed** — the old code was 1-indexed `Point*`. Names carried over in spirit: `Dot`/`Cross` → `.dot()`/`.cross()`, `Point_on_seg` → `onSeg`, `Cross_Segment` → `segInter`, `Cross_point` → `lineInter`, `Dis_point_seg` → `segDist`, `Polygon_area` → `area2` (**twice** the area, integer), `Point_in_polygon` → `inPoly`, `Convex_Hull` → `hull` |
+
+### Ruiming's math and geometry: his code, verbatim
+
+Every file in `Ruiming/math/` and `Ruiming/geometry/` is in the notebook as **his
+actual code**, and `tools/verbatim.sh` proves it: each such listing carries a
+`%FROM <file>` marker, and the script checks that every statement of the listing
+appears in that file, in order (comments and whitespace ignored). Run it after any
+edit; it must say `0 changed`. The only differences it allows, and the only ones made:
+
+- the prelude each file repeated (`#include`, typedefs, `INF`, `MAXN`, `eps`) is
+  dropped, because the merged header in *Contest setup* carries it, including his
+  `//UPDATERA ARRAY STORLEKEN` comment and `MAXN`. Exception: `miller_rabin.cpp` is
+  printed whole (it has `typedef __int128 ll`, so it is a standalone file, not pasted
+  under the header);
+- code repeated across his files is printed **once**: the geometry base (`ldcmp`,
+  `Point`, `POF`, `Dist`, `Dot`, `Len`, `Cross`, ..., `Rotate`) as *Point / vector*,
+  and `fast` as *Fast power*, which *Euler's theorem* and *Binomials (inverse)* use;
+- example `main()`/`solve()` bodies are dropped where the template is a set of
+  functions. Where the algorithm *is* `main()` the whole program is kept;
+- comments: long lines re-wrapped to the 62-character column, Chinese comments
+  translated (pdfLaTeX cannot print them), his geometry `ld eps=1e-6;` kept as a
+  comment since `eps` is declared once in the header.
+
+| Entry | From `Ruiming/` |
+| --- | --- |
+| Fast power | `math/Fastmod.cpp` |
+| Fast gcd | `math/Fast_gcd.cpp` |
+| CRT | `math/CRT.cpp` |
+| Euler sieve | `math/Euler_sieve.cpp` |
+| Linear sieve + Euler phi | `math/Linearphi.cpp` |
+| Euler phi of one number | `math/Phi.cpp` |
+| Prime factorization | `math/Prime_factorization.cpp` |
+| Factorization table | `math/Factorization.cpp` |
+| Euler's theorem (huge exponent) | `math/Eulerthm.cpp` |
+| Miller-Rabin (standalone) | `math/miller_rabin.cpp` |
+| Miller-Rabin + Pollard rho | `math/Pollard_rho.cpp` |
+| Binomials (Pascal) | `math/Combinumber.cpp` |
+| Binomials (inverse) | `math/Combinumber_inv.cpp` |
+| Linear inverses | `math/Linearinverse.cpp` |
+| Matrix power | `math/Matrix.cpp`. `struct matrix` clashes with Ruben's `matrix` typedef, so delete the typedef when you use it |
+| Gaussian elimination | `math/gaussjordanelimination.cpp` |
+| Big integers | `math/Big_Integer.cpp` |
+| Point / vector, Lines and segments | `geometry/Point_lines_vectors.cpp` |
+| Polygons | `geometry/Polygon.cpp` |
+| Convex hull | `geometry/Convex_Hull.cpp` |
+| Half-plane intersection | `geometry/Half_Plane_Intersect.cpp`. Its own `Line` (adds `v`, `ang`, `operator<`) replaces the one in *Lines and segments* when you use it |
+| Lattice points (exact) | `geometry/Lattic_Point.cpp` |
+
+Not his, and labelled as such in the notebook: *Modular basics* and *Binomials mod p*
+(Ruben), *CRT (general)* and *Sieves* (Martin), *FFT / NTT*, and `closest` and the
+circle functions, which were written on top of his `PointLL` / `Point` so the geometry
+section has one point type.
 
 ### New — nobody had these
 
 `LineContainer` (CHT, adapted from KACTL, CC0), `hungarian` (real weighted
 assignment), `ntt`/`conv` (FFT), `closest` (closest pair), `circleLine`,
-`circleCircle`, `inConvex`, `sos` (subset sums), `compress`, and the whole
+`circleCircle`, `sos` (subset sums), `compress`, and the whole
 *Reference* section.
 
 ### Cut, and why
@@ -246,4 +296,4 @@ following `lstlisting` is independently removable.
 Simplex / LP, Berlekamp-Massey, suffix automaton, half-plane intersection, persistent
 segment tree, Gomory-Hu, general (non-bipartite) matching, Mo's algorithm. All
 plausible-but-unlikely at NCPC/NWERC, and there is ~6 pages of slack if you want to
-add one — that is what the slack is for (16 of 25 pages used).
+add one — that is what the slack is for (22 of 25 pages used).

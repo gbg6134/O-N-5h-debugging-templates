@@ -1,7 +1,7 @@
 // DEPS: modbasics binom
 int main(){
     precompute();
-    int N = 300;
+    int N = (int)MAXN - 1;
     vector<vi> p(N + 1, vi(N + 1, 0));
     rep(i, 0, N + 1) {
         p[i][0] = 1;
@@ -15,5 +15,5 @@ int main(){
     if (C(-1, 0) || C(5, 7) || C(MAXN, 1)) {
         puts("MISMATCH out-of-range guard"); return 1;
     }
-    puts("OK C(n,k) == Pascal for n,k <= 300; out-of-range returns 0");
+    puts("OK C(n,k) == Pascal for n,k < MAXN; out-of-range returns 0");
 }
