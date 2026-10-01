@@ -3,10 +3,10 @@
 %  GENERATED FILE: edit src/*.tex, then run tools/build.sh
 %  Paste notebook.tex into Overleaf and hit Recompile -- plain pdfLaTeX.
 %
-%  Layout matches KACTL exactly: A4 LANDSCAPE, 3 columns, 8pt code.
-%  (kactl uses \documentclass[9pt,a4paper]{extreport} + geometry
+%  Layout matches KACTL: A4 LANDSCAPE, 3 columns. Code is 8pt, one point
+%  ABOVE KACTL's (kactl uses \documentclass[9pt,a4paper]{extreport} + geometry
 %   a4paper,landscape,hmargin={0.5cm,0.5cm},vmargin={1.0cm,0.4cm}
-%   + multicols*{3} + \footnotesize listings, i.e. 8pt code.)
+%   + multicols*{3} + \footnotesize listings; size9.clo makes that 7pt.)
 %
 %  NWERC rules encoded here: <= 25 pages, single-sided, A4, university name
 %  in the UPPER LEFT, page number in the UPPER RIGHT.
@@ -18,7 +18,7 @@
 \newcommand{\team}{$O(N^{\text{5h debugging}})$}
 \newcommand{\members}{Ruben \quad Ruiming \quad Martin}
 
-% Code size. 8pt is exactly KACTL's, which is printed for NWERC every year.
+% Code size. 8pt is a point above KACTL's 7pt, which is printed for NWERC every year.
 % DO NOT go below it -- raise both numbers if the print looks tight.
 \newcommand{\codesize}{\fontsize{8}{8.8}\selectfont}
 
@@ -37,6 +37,7 @@
 \usepackage{fancyhdr}
 \usepackage{amsmath,amssymb}
 \usepackage{tocloft}
+\usepackage{graphicx}
 \usepackage[expansion=false]{microtype}
 
 \definecolor{secbg}{HTML}{1F3B57}
@@ -130,26 +131,22 @@
 \begin{document}
 
 % ------------------------------- front page --------------------------------
-\pagestyle{empty}
+% The cover counts toward the 25 pages, and NWERC wants the university upper
+% left and the page number upper right on the pages -- so the cover keeps the
+% running header and is page 1, like every other page.
+% Laid out like KACTL's cover: logo, university, team name, members, contest.
+% kth.pdf must sit next to notebook.tex (upload it to Overleaf too).
 \begin{center}
-\vspace*{2.2cm}
-{\fontsize{46}{50}\selectfont\bfseries Notebook}\\[0.5cm]
-{\Large Team Reference Document \quad\textbullet\quad NCPC / NWERC}\\[1.6cm]
-\textcolor{rule}{\rule{0.55\textwidth}{0.8pt}}\\[1.2cm]
-{\fontsize{30}{34}\selectfont\bfseries \team}\\[1.4cm]
-{\LARGE \uni}\\[0.9cm]
-{\Large \members}
+\vspace*{1.2cm}
+\includegraphics[width=3.2cm]{kth.pdf}\\[0.7cm]
+{\fontsize{24}{28}\selectfont \uni}\\[1.3cm]
+{\fontsize{46}{50}\selectfont\bfseries \team}\\[1.2cm]
+{\huge \members}\\[1.4cm]
+\textcolor{rule}{\rule{0.55\textwidth}{0.8pt}}\\[0.9cm]
+{\LARGE Team Reference Document \quad\textbullet\quad NCPC / NWERC}
 \vfill
-{\footnotesize 25-page limit: this document is 16 pages including this cover.
-Single-sided, A4.\par}
-\vspace{0.8cm}
 \end{center}
 \newpage
-\setcounter{page}{1}
-% The cover uses \pagestyle{empty}; switch back here. \thispagestyle does NOT
-% work for this -- its effect lands on the index page instead of the cover and
-% page 1 of the index loses its header.
-\pagestyle{fancy}
 
 % ------------------------------ index + body -------------------------------
 {\large\bfseries Index}\hfill{\footnotesize\members}

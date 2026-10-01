@@ -1,6 +1,6 @@
 # Team Reference Document — NCPC / NWERC
 
-`notebook.tex` is the single file to paste into Overleaf. Nothing under `Ruben/`,
+`notebook.tex` is the file to paste into Overleaf; upload `kth.pdf` (the cover logo, from KACTL) next to it. Nothing under `Ruben/`,
 `Ruiming/` or `martin/` was modified.
 
 ## Build
@@ -9,9 +9,9 @@
 tools/build.sh    # src/*.tex  ->  notebook.tex   (run after any edit)
 tools/pdf.sh      # notebook.tex -> build/pdf/notebook.pdf  (tectonic)
 tools/lint.sh     # unescaped % _ # &, unbalanced $   -> 0 issues
-tools/check.sh    # every listing compiled, gnu++17 + gnu++20 -> 148 ok, 0 failed
-tools/smoke.sh    # templates vs brute force            -> 17 tests, 0 failed
-tools/verbatim.sh # %FROM listings vs their source files -> 23 match, 0 changed
+tools/check.sh    # every listing compiled, gnu++17 + gnu++20 -> 182 ok, 0 failed
+tools/smoke.sh    # templates vs brute force            -> 25 tests, 0 failed
+tools/verbatim.sh # %FROM listings vs their source files -> 24 match, 0 changed
 tools/pages.sh    # rough page estimate without compiling (reads high: 18.5 vs 15 content pages)
 ```
 
@@ -20,8 +20,8 @@ PDF: `tools/pdf.sh` locally (tectonic, self-contained, downloads its TeX bundle 
 first run), or paste `notebook.tex` into Overleaf and hit Recompile. Tectonic is
 XeTeX-based and Overleaf defaults to pdfLaTeX; both compile this file cleanly.
 
-**Current output: 22 pages (front page + 21 of content), 0 overfull hboxes,
-98 index entries.**
+**Current output: 25 pages (front page + 24 of content; the last page is full), 0 overfull hboxes,
+116 index entries.**
 
 Team name, university and members are three macros at the top of
 `src/00-preamble.tex` (`\team`, `\uni`/`\unishort`, `\members`); the front page and
@@ -31,12 +31,12 @@ the running header both read from them, so change them in one place.
 
 | Rule | How |
 | --- | --- |
-| max **25 pages** | **22** incl. the front page, measured from the compiled PDF — 3 pages of slack |
+| max **25 pages** | **25** incl. the front page, measured from the compiled PDF — exactly at the limit, so anything added means something removed |
 | single-sided, A4 | A4 landscape (still "A4 size"); print one-sided |
 | university name **upper left** | `\lhead{\uni}` = "KTH Royal Institute of Technology" |
 | page number **upper right** | `\rhead{\thepage}` |
-| front page | carries team name, university and members; unnumbered and with no running header |
-| readable at 0.5 m | 8pt code — *exactly* KACTL's size (see below) |
+| front page | KTH logo, university, team name, members, "Team Reference Document · NCPC / NWERC" (the rules' own term, instead of "Notebook"), **and the same header as every page** — it counts toward the 25, and the rule asks for university + number on the pages, so it is page 1. Checked with `pdftotext`: all 25 pages start with the university and end with their own number |
+| readable at 0.5 m | 8pt code, 7pt prose and tables. KACTL (9pt `extreport`, `\footnotesize` throughout) prints *everything* at 7pt, so nothing here is smaller than KACTL. The PathDP table used to be `\scriptsize` = 6pt; raised to 7pt |
 | institution on the folder cover | do this when you print |
 
 NCPC allows unlimited printed material, so this one document covers both contests.
@@ -48,9 +48,9 @@ one line in the preamble:
 \newcommand{\codesize}{\fontsize{8}{8.8}\selectfont}
 ```
 
-Raise both numbers if it looks tight. **Do not lower them** — 8pt is what KACTL
-prints for NWERC every year, and going below that is the one thing here that could
-plausibly be challenged.
+Raise both numbers if it looks tight. **Do not lower them.** KACTL, printed for NWERC
+every year, uses `\footnotesize` in a 9pt `extreport`, which `size9.clo` defines as
+**7pt**; our 8pt code is a point above that, a deliberate margin.
 
 ## Layout
 
@@ -82,8 +82,8 @@ depends on it.
 | Tool | What it actually proves |
 | --- | --- |
 | `lint.sh` | no unescaped specials, inline math balanced, `tabular`/`ctab`/`begingroup` balanced |
-| `check.sh` | all 148 listings compile under **both** gnu++17 and gnu++20 |
-| `smoke.sh` | 17 randomised tests, each against an independent oracle |
+| `check.sh` | all 182 listings compile under **both** gnu++17 and gnu++20 |
+| `smoke.sh` | 18 randomised tests, each against an independent oracle |
 
 `%HEADER`, `%NOCOMPILE`, `%LABEL <name>` and `%DEP <a> <b>` markers in `src/*.tex`
 drive the extraction. `%NOCOMPILE` is Ruben's existing convention for fragments.
@@ -110,9 +110,25 @@ What the smoke tests check:
 - **geometry** — `Cross_Segment` vs an exact integer oracle (200k cases), `Convex_Hull` vs an
   O(n³) oracle, both `Point_in_polygon`s vs an exact oracle, `Polygon_area`, `closest` vs O(n²), circles
 - **hpi** — area of `HPI` over 1–4 random convex polygons vs Sutherland–Hodgman clipping
+- **frac** — `zero_one_partition` vs brute force over every set of k items to drop
+- **kactl_alg** — `modLog` for every a, b, m < 120; `modSqrt` for every a mod every prime < 600;
+  Berlekamp–Massey recovers 500 random recurrences and `linearRec` reproduces them (and fib(10¹⁸));
+  both `det`s vs permutation expansion
+- **kactl_conv** — double `conv` exact vs naive, `convMod<1e9+7>` vs naive in i128, FST AND;
+  **kactl_fst.sh** re-makes the OR and XOR variants exactly as the entry says and tests those
+- **kactl_lp** — simplex vs vertex enumeration on 3000 random 2-variable LPs (820 infeasible),
+  the unbounded case, KACTL's usage example (= −7/3); Simpson on known integrals
+- **kactl_graph** — 2-SAT (with an `atMostOne` group) vs all assignments, and the returned
+  assignment satisfies everything; max clique vs all subsets; König cover covers every
+  edge and has the matching's size
+- **kactl_misc** — Mo vs naive distinct count, Stoer–Wagner vs every bipartition (and the
+  returned side achieves it), D&C DP vs the O(Gn²) DP, `minRotation` vs every rotation
+- **kactl_geo** — `hullCCW` strictly convex and covering, `hullDiameter` vs all pairs, `inHull`
+  strict / non-strict vs exact oracle, `mec` vs every 2- and 3-point circle, `polygonCut`
+  areas partition the polygon, `tangents` touch both circles at right angles
 
-The document itself compiles clean under tectonic: **22 pages** (front page + 21), **0 overfull
-hboxes**, 98 index entries. Two layout bugs were found and fixed by actually looking
+The document itself compiles clean under tectonic: **25 pages** (front page + 24), **0 overfull
+hboxes**, 116 index entries. Two layout bugs were found and fixed by actually looking
 at the compiled output rather than trusting the source:
 
 - Sections were numbered in the index, and since `\cftsecnumwidth` is `0em` the number
@@ -204,7 +220,7 @@ functions. Names are kept wherever there was a real interface.
 
 ### Ruiming's math and geometry: his code, verbatim
 
-Every file in `Ruiming/math/` and `Ruiming/geometry/` is in the notebook as **his
+Every file in `Ruiming/math/` and `Ruiming/geomtery/` (his spelling) is in the notebook as **his
 actual code**, and `tools/verbatim.sh` proves it: each such listing carries a
 `%FROM <file>` marker, and the script checks that every statement of the listing
 appears in that file, in order (comments and whitespace ignored). Run it after any
@@ -220,9 +236,12 @@ edit; it must say `0 changed`. The only differences it allows, and the only ones
   and `fast` as *Fast power*, which *Euler's theorem* and *Binomials (inverse)* use;
 - example `main()`/`solve()` bodies are dropped where the template is a set of
   functions. Where the algorithm *is* `main()` the whole program is kept;
-- comments: long lines re-wrapped to the 62-character column, Chinese comments
-  translated (pdfLaTeX cannot print them), his geometry `ld eps=1e-6;` kept as a
-  comment since `eps` is declared once in the header.
+- whitespace: completely empty lines are removed from all listings (everyone's, to save
+  space), long lines re-wrapped to the 62-character column;
+- comments: Chinese comments
+  translated (pdfLaTeX cannot print them); his `ld eps=1e-6;` lines (geometry,
+  `zero_one_partition`) kept as comments
+  since `eps` is declared once in the header.
 
 | Entry | From `Ruiming/` |
 | --- | --- |
@@ -236,18 +255,19 @@ edit; it must say `0 changed`. The only differences it allows, and the only ones
 | Factorization table | `math/Factorization.cpp` |
 | Euler's theorem (huge exponent) | `math/Eulerthm.cpp` |
 | Miller-Rabin (standalone) | `math/miller_rabin.cpp` |
-| Miller-Rabin + Pollard rho | `math/Pollard_rho.cpp` |
+| Miller-Rabin + Pollard rho | `math/Pollard_Rho.cpp` |
 | Binomials (Pascal) | `math/Combinumber.cpp` |
 | Binomials (inverse) | `math/Combinumber_inv.cpp` |
 | Linear inverses | `math/Linearinverse.cpp` |
 | Matrix power | `math/Matrix.cpp`. `struct matrix` clashes with Ruben's `matrix` typedef, so delete the typedef when you use it |
 | Gaussian elimination | `math/gaussjordanelimination.cpp` |
+| 0/1 fractional programming | `math/zero_one_partition.cpp` (his POJ 2976 `main` dropped; returns 100 x the ratio, rounded) |
 | Big integers | `math/Big_Integer.cpp` |
-| Point / vector, Lines and segments | `geometry/Point_lines_vectors.cpp` |
-| Polygons | `geometry/Polygon.cpp` |
-| Convex hull | `geometry/Convex_Hull.cpp` |
-| Half-plane intersection | `geometry/Half_Plane_Intersect.cpp`. Its own `Line` (adds `v`, `ang`, `operator<`) replaces the one in *Lines and segments* when you use it |
-| Lattice points (exact) | `geometry/Lattic_Point.cpp` |
+| Point / vector, Lines and segments | `geomtery/Line_and_Vectors.cpp` |
+| Polygons | `geomtery/Polygon.cpp` |
+| Convex hull | `geomtery/Convex_Hull.cpp` |
+| Half-plane intersection | `geomtery/Half_Plane_Intersect.cpp`. Its own `Line` (adds `v`, `ang`, `operator<`) replaces the one in *Lines and segments* when you use it |
+| Lattice points (exact) | `geomtery/Lattic_points.cpp` |
 
 Not his, and labelled as such in the notebook: *Modular basics* and *Binomials mod p*
 (Ruben), *CRT (general)* and *Sieves* (Martin), *FFT / NTT*, and `closest` and the
@@ -291,9 +311,43 @@ following `lstlisting` is independently removable.
 7. `LineContainer` — only for a specific DP shape
 8. `gauss` — drop last; it is short and shows up in odd places
 
+## KACTL entries
+
+Taken from KACTL (`kth-competitive-programming/kactl`), each tagged *KACTL* in its
+header bar and given a longer explanation than KACTL's, since the team has not used
+them before. Changes are mechanical: `sz(x)` written out (a `sz` macro breaks `Treap`),
+`int` → `ll` where the header's `vi`/`pii` are `ll`, names that clashed with existing
+entries renamed. Geometry is ported onto Ruiming's `Point` / `PointLL` instead of
+adding a second point type.
+
+| Entry | KACTL file(s) | Licence | Changed |
+| --- | --- | --- | --- |
+| Mo's algorithm | `MoQueries.h` | CC0 | example `add`/`del`/`calc` filled in; `moTree` left out |
+| 2-SAT | `2sat.h` | CC0 | `val`/`comp`/`z` are `vector<int>` (`min(int, ll)` would not compile) |
+| Maximum clique | `MaximumClique.h` | CC0 | verbatim, wrapped in `#define sz` … `#undef sz` |
+| Minimum vertex cover | `MinimumVertexCover.h` | CC0 | runs on our `Matching` instead of `DFSMatching` |
+| Global min cut | `GlobalMinCut.h` | CC0 | `ll` weights, `INT_MIN` → `-INF` |
+| Divide and conquer DP | `DivideAndConquerDP.h` | CC0 | `f`/`store` wired to `prv`/`cur` |
+| Discrete log, modular sqrt | `ModLog.h`, `ModSqrt.h` | CC0 | `sqrt` → `modSqrt`, returns −1 instead of asserting, uses `power` |
+| FFT, convolution mod any m | `FastFourierTransform.h`, `FastFourierTransformMod.h` | CC0 | `C` → `cd` (clashes with binomial `C`) |
+| AND / OR / XOR convolution | `FastSubsetTransform.h` | GFDL 1.2 | `int&` → `ll&`, `conv` → `fstConv` |
+| Berlekamp–Massey + k-th term | `BerlekampMassey.h`, `LinearRecurrence.h` | CC0 | `mod` = 1e9+7 |
+| Determinant | `Determinant.h`, `IntDeterminant.h` | CC0 / none stated | none |
+| Simplex | `Simplex.h` (from the Stanford notebook) | MIT | `eps` → `EPS` (header has `eps`) |
+| Numerical integration | `Integrate.h` | CC0 | none |
+| Minimum rotation | `MinRotation.h` | Unlicense | `max(0, …)` → `max(0LL, …)` |
+| Hull diameter, point in hull | `ConvexHull.h`, `HullDiameter.h`, `PointInsideHull.h` | CC0 | on `PointLL`; `max` of pairs → explicit compare (`PointLL` has no `<`) |
+| Enclosing circle, polygon cut, tangents | `MinimumEnclosingCircle.h`, `circumcircle.h`, `PolygonCut.h`, `CircleTangents.h` | CC0 | on Ruiming's `Point` |
+
+Skipped because the notebook already covers them: LCA, HLD,
+Dinic, MCMF, Hungarian, KMP/Z/Manacher/suffix array/Aho–Corasick, NTT, CRT,
+Miller–Rabin/Pollard, Gaussian elimination, LineContainer, treap, closest pair.
+
 ## Still missing, deliberately
 
-Simplex / LP, Berlekamp-Massey, suffix automaton, half-plane intersection, persistent
-segment tree, Gomory-Hu, general (non-bipartite) matching, Mo's algorithm. All
-plausible-but-unlikely at NCPC/NWERC, and there is ~6 pages of slack if you want to
-add one — that is what the slack is for (22 of 25 pages used).
+Suffix automaton, persistent segment tree, Gomory-Hu, link-cut tree, 3D hull.
+Ported but cut to stay at 25 pages (never smoke-tested, so test before relying on
+them): general (non-bipartite) matching via the Tutte matrix (`GeneralMatching.h` +
+`MatrixInverse-mod.h`), circle∩polygon area (`CirclePolygonIntersection.h`), floor sums
+(`ModSum.h`), angle sweep (`Angle.h`). They are the next candidates if something else is
+removed.

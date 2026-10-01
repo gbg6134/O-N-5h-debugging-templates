@@ -5,7 +5,7 @@ Folds every simple path covering \emph{exactly} a mask into one value, $n \le 20
 Directed --- fill both directions for undirected. Pick a row of the table, edit the 5
 config lines, done. The constructor does all the work; every call below is a
 lookup.\\[0.3ex]
-{\ttfamily\scriptsize
+{\ttfamily\footnotesize
 \begingroup\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}llllll@{}}
 want & T & UNIT & NONE & ext(x,wt) & merge(a,b)\\
@@ -49,10 +49,8 @@ struct PathDP {
     static constexpr T UNIT = 0;
     static constexpr T NONE = 1e18;
     static constexpr ll INF = 1e18;      // missing edge in w
-
     int n; ll starts, full;
     matrix w; vector<T> dp; vector<char> par;
-
     PathDP(const matrix& wt, ll ss = -1, bool canon = false)
             : n(wt.size()), starts(ss), full((1LL << n) - 1),
               w(wt) {
@@ -218,4 +216,41 @@ rep(len, 2, n + 1)
       dp[i][j] = min(dp[i][j],
                      dp[i][k] + dp[k+1][j] + cost(i, j));
   }
+\end{lstlisting}
+
+\entry{Divide and conquer DP}{KACTL \quad $O(n \log n)$ per layer}{%
+The optimisation described above, as code. Shape: split \code{1..n} into \code{G}
+consecutive groups, \code{cur[i] = min over k < i of prv[k] + cost(k, i)} where
+\code{cost(k, i)} is the price of the group \code{(k, i]}, one layer per group. Naively
+$O(Gn^2)$; this is $O(Gn\log n)$.\\[0.3ex]
+Valid when the best \code{k} never moves left as \code{i} grows --- true when
+\code{cost} satisfies the quadrangle inequality, e.g.\ (sum of the group)$^2$, or the
+number of equal pairs inside it. Not sure? Compare with the naive DP on random small
+inputs.\\[0.3ex]
+Per layer: \code{prv} = previous layer (\code{prv[0] = 0}, the rest \code{INF} for
+layer 1), \code{cur.assign(n+1, INF); DP().solve(1, n+1); prv = cur;}. \code{lo},
+\code{hi} bound \code{k} to \code{[lo, hi)}. \code{cost} must be $O(1)$: prefix
+sums.}
+
+%LABEL dncdp
+\begin{lstlisting}
+vi prv, cur;          // previous layer, layer being built
+ll cost(int k, int i);              // cost of group (k, i]
+struct DP { // Modify at will:
+    int lo(int ind) { return 0; }
+    int hi(int ind) { return ind; }
+    ll f(int ind, int k) { return prv[k] + cost(k, ind); }
+    void store(int ind, int k, ll v) { cur[ind] = v; }
+    void rec(int L, int R, int LO, int HI) {
+        if (L >= R) return;
+        int mid = (L + R) >> 1;
+        pair<ll, ll> best(LLONG_MAX, LO);
+        rep(k, max(LO,lo(mid)), min(HI,hi(mid)))
+            best = min(best, make_pair(f(mid, k), k));
+        store(mid, best.second, best.first);
+        rec(L, mid, LO, best.second+1);
+        rec(mid+1, R, best.second, HI);
+    }
+    void solve(int L, int R) { rec(L, R, INT_MIN, INT_MAX); }
+};
 \end{lstlisting}

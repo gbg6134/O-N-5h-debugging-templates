@@ -27,7 +27,6 @@ struct Dinic {
     int n; vector<E> e; vector<vector<int>> g;
     vector<int> lvl, it;
     Dinic(int n = 0) : n(n), g(n) {}
-
     int addEdge(int u, int v, ll cap, ll rcap = 0) {
         g[u].push_back((int)e.size()); e.push_back({v, cap});
         g[v].push_back((int)e.size()); e.push_back({u, rcap});
@@ -86,7 +85,6 @@ struct MCMF {
     struct E { int to; ll cap, cost; };
     int n; vector<E> e; vector<vector<int>> g;
     MCMF(int n = 0) : n(n), g(n) {}
-
     void addEdge(int u, int v, ll cap, ll cost) {
         g[u].push_back((int)e.size());
         e.push_back({v, cap, cost});
@@ -148,7 +146,6 @@ struct Matching {
     Matching(int n1 = 0, int n2 = 0) : n1(n1), n2(n2), g(n1),
         matchL(n1, -1), matchR(n2, -1) {}
     void addEdge(int u, int v) { g[u].push_back(v); }
-
     bool tryKuhn(int u) {
         for (int v : g[u]) if (!vis[v]) {
             vis[v] = 1;
@@ -168,6 +165,35 @@ struct Matching {
         return r;
     }
 };
+\end{lstlisting}
+
+\entry{Minimum vertex cover (K\"onig)}{KACTL \quad $O(n + m)$ after matching}{%
+The construction above as code, KACTL's \code{cover} on our \code{Matching}. Call
+\code{maxMatching()} first. Returns the cover as \{left vertices, right vertices\};
+its size equals the matching. Everything \emph{not} in it is a maximum independent set
+--- ``choose the most items with no conflicting pair'' when conflicts only go between
+two groups.}
+
+%DEP Matching
+%LABEL cover
+\begin{lstlisting}
+pair<vi, vi> vertexCover(Matching& M) {
+    vector<char> lf(M.n1, 1), seen(M.n2, 0);
+    for (int u : M.matchR) if (u != -1) lf[u] = 0;
+    vi q, L, R;
+    rep(i,0,M.n1) if (lf[i]) q.push_back(i);
+    while (!q.empty()) {
+        int i = q.back(); q.pop_back();
+        lf[i] = 1;
+        for (int e : M.g[i]) if (!seen[e] && M.matchR[e]+1) {
+            seen[e] = 1;
+            q.push_back(M.matchR[e]);
+        }
+    }
+    rep(i,0,M.n1) if (!lf[i]) L.push_back(i);
+    rep(i,0,M.n2) if (seen[i]) R.push_back(i);
+    return {L, R};
+}
 \end{lstlisting}
 
 \entry{Hungarian (assignment)}{$O(n^2 m)$ \quad mem $nm$}{%
@@ -285,5 +311,41 @@ vector<int> eulerPath(int n, const vector<pii>& es,
     if ((int)path.size() != m + 1) return {};   // disjoint
     reverse(all(path));
     return path;
+}
+\end{lstlisting}
+
+\entry{Global min cut (Stoer--Wagner)}{KACTL \quad $O(V^3)$}{%
+The cheapest set of edges whose removal disconnects an \textbf{undirected} graph, with
+\emph{no} \code{s} and \code{t} given. (If they are given, that is max flow: use
+\code{Dinic}.) Running Dinic for every pair would be $V^2$ flows; this is one $O(V^3)$
+pass, fine for $V \le 500$. With unit weights it is the edge connectivity.\\[0.3ex]
+Input is an adjacency \textbf{matrix} of total weights --- add each edge to both
+\code{mat[u][v]} and \code{mat[v][u]}, summing parallel edges. Returns
+\code{\{weight, vertices on one side\}}. Each phase merges the last two vertices of a
+maximum-adjacency order; the cut ``last vertex alone'' is a candidate.
+KACTL's \code{int}s are \code{ll} here (\code{INT\_MIN} became \code{-INF}).}
+
+%LABEL mincut
+\begin{lstlisting}
+pair<ll, vi> globalMinCut(vector<vi> mat) {
+    pair<ll, vi> best = {LLONG_MAX, {}};
+    int n = (int)mat.size();
+    vector<vi> co(n);
+    rep(i,0,n) co[i] = {i};
+    rep(ph,1,n) {
+        vi w = mat[0];
+        size_t s = 0, t = 0;
+        rep(it,0,n-ph) { // O(V^2); O(E log V) with a heap
+            w[t] = -INF;
+            s = t, t = max_element(all(w)) - w.begin();
+            rep(i,0,n) w[i] += mat[t][i];
+        }
+        best = min(best, {w[t] - mat[t][t], co[t]});
+        co[s].insert(co[s].end(), all(co[t]));
+        rep(i,0,n) mat[s][i] += mat[t][i];
+        rep(i,0,n) mat[i][s] = mat[s][i];
+        mat[0][t] = -INF;
+    }
+    return best;
 }
 \end{lstlisting}

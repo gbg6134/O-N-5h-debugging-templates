@@ -73,7 +73,6 @@ struct Seg {
     using T = ll;
     static T op(T a, T b) { return a + b; }
     static constexpr T ID = 0;
-
     int n; vector<T> t;
     Seg(int n = 0) : n(n), t(2 * n, ID) {}
     Seg(const vector<T>& a)
@@ -107,7 +106,6 @@ no updates ever. For sum use \code{BIT}, for updates use \code{Seg}.}
 struct SpTab {
     using T = ll;
     static T op(T a, T b) { return min(a, b); }
-
     int n; vector<vector<T>> t;
     SpTab(const vector<T>& a) : n((int)a.size()), t(1, a) {
         for (int k = 1; (1 << k) <= n; k++) {
@@ -149,11 +147,9 @@ struct SparseSeg {
     using T = ll;
     static T op(T a, T b) { return a + b; }
     static constexpr T ID = 0;
-
     struct Nd { int l, r; T v; };
     ll lo, hi;
     vector<Nd> nd;               // node 0 = null, 1 = root
-
     SparseSeg(ll lo = 0, ll hi = 1, int hint = 0)
             : lo(lo), hi(hi) {
         ll C = max(hi - lo, 1LL), h = max(hint, 1);
@@ -263,7 +259,6 @@ struct LazySeg {
     static F sh(F f, int k)      { return f; }
     static constexpr T ID  = 0;
     static constexpr F NOP = 0;
-
     int n; vector<T> t; vector<F> d;
     LazySeg(int n = 0) : n(n), t(4*n, ID), d(4*n, NOP) {}
     LazySeg(const vector<T>& a) : LazySeg((int)a.size()) {
@@ -276,7 +271,6 @@ struct LazySeg {
         return l < r ? qry(1, 0, n, l, r) : ID;
     }
     T operator[](int i) { return query(i, i + 1); }
-
     // node v covers [l, r)
     void build(int v, int l, int r, const vector<T>& a) {
         if (r - l == 1) { t[v] = a[l]; return; }
@@ -326,7 +320,6 @@ in \code{ag} together to get min/max instead of sum. \code{query(l, r)} folds
 \begin{lstlisting}
 mt19937 rng(chrono::steady_clock::now()
                 .time_since_epoch().count());
-
 template<typename T>
 struct Treap {
     struct Node {
@@ -335,7 +328,6 @@ struct Treap {
                     l(nullptr), r(nullptr) {}
     };
     Node* root = nullptr;
-
     static ll sz(Node* t) { return t ? t->sz : 0; }
     static T  ag(Node* t) { return t ? t->agg : T{}; }
     static void pull(Node* t) {
@@ -445,4 +437,43 @@ struct LineContainer : multiset<Line, less<>> {
         return l.k * x + l.m;
     }
 };
+\end{lstlisting}
+
+\entry{Mo's algorithm}{KACTL \quad $O((N + Q)\sqrt N)$ add/del calls}{%
+Offline range queries where you can cheaply \textbf{add or remove one element} of the
+current window but cannot merge two halves: number of distinct values, most frequent
+value, number of equal pairs, $\sum \mathrm{cnt}^2$. If a segment tree can do it, use
+the segment tree.\\[0.3ex]
+Queries are \textbf{half-open} \code{\{l, r\}} $= [l, r)$. Read all of them first;
+\code{mo} returns the answers in input order. It sorts queries by block of \code{l}
+(alternating the \code{r} direction per block), so the two pointers move
+$O(N\sqrt Q)$ in total. Set \code{blk} $\approx N/\sqrt Q$.\\[0.3ex]
+You write \code{add}, \code{del}, \code{calc}; the example below counts distinct values
+(compress \code{a} first, size \code{cnt} to the number of values). \code{end} says
+which side moved (0 left, 1 right) --- only needed when order matters. KACTL also has a
+tree-path version (\code{moTree}).}
+
+%LABEL mo
+\begin{lstlisting}
+vi a, cnt; ll nd = 0;   // example: count distinct values
+void add(int i, int end) { if (cnt[a[i]]++ == 0) nd++; }
+void del(int i, int end) { if (--cnt[a[i]] == 0) nd--; }
+ll calc() { return nd; }
+vi mo(vector<pii> Q) {
+    int L = 0, R = 0, blk = 350; // ~N/sqrt(Q)
+    vi s(Q.size()), res = s;
+#define K(x) pii(x.first/blk, x.second ^ -(x.first/blk & 1))
+    iota(all(s), 0);
+    sort(all(s), [&](int s, int t){
+        return K(Q[s]) < K(Q[t]); });
+    for (int qi : s) {
+        pii q = Q[qi];
+        while (L > q.first) add(--L, 0);
+        while (R < q.second) add(R++, 1);
+        while (L < q.first) del(L++, 0);
+        while (R > q.second) del(--R, 1);
+        res[qi] = calc();
+    }
+    return res;
+}
 \end{lstlisting}

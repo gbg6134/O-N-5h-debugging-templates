@@ -16,7 +16,6 @@ add them back as you need. Ruiming's \code{struct matrix} clashes with the
 #include <bits/stdc++.h>
 #include <cassert>   // bits/stdc++.h no longer pulls this in
 using namespace std;
-
 typedef long long ll;
 typedef long double ld;
 typedef unsigned long long ull;
@@ -28,10 +27,8 @@ typedef vector<vi> matrix;
 #define down(i, b, a) for(ll i = b - 1; i >= a; i--)
 #define all(v) (v).begin(), (v).end()
 ld eps = 1e-9;
-
 const ll INF=1e18;
 const ll MAXN=206;//UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!
-
 int main(){
     ios_base::sync_with_stdio(false);
     cin.tie(NULL);
@@ -49,7 +46,6 @@ solution, \code{ans} the slow one you trust.}
 \begin{lstlisting}
 g++ -std=gnu++17 -O2 -Wall -Wextra -Wshadow \
     -fsanitize=address,undefined -g a.cpp
-
 for i in $(seq 1000); do
   python3 gen.py $i > t.txt
   ./mine < t.txt > o1.txt; ./ans < t.txt > o2.txt

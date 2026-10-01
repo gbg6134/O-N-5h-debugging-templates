@@ -17,22 +17,19 @@ area.\\
 \code{POF} is the ``no point'' sentinel \code{Cross\_Segment} compares against.}
 
 %LABEL point
-%FROM Ruiming/geometry/Point_lines_vectors.cpp
+%FROM Ruiming/geomtery/Line_and_Vectors.cpp
 \begin{lstlisting}
 const ld pi=acos(-1.0);
 //eps=1e-6;//MIGHT GET WA PGA EPS TOO SMALL!!!!!!!!!!!!!!!!!
-
 ll ldcmp(ld x,ld y){
     if(fabs(x-y)<eps) return 0;
     else return x<y?-1:1;
     //is x<y return -1, x>y return 1;
 }
-
 struct Point{
     ld x,y;
     Point(): x(0),y(0){}
     Point(ld x,ld y): x(x),y(y) {}
-
     Point operator + (Point B){return Point(x+B.x,y+B.y);}
     Point operator - (Point B){return Point(x-B.x,y-B.y);}
     Point operator * (ld k){return Point(x*k,y*k);}
@@ -44,15 +41,11 @@ struct Point{
         return y < B.y;
     }
 };
-
 Point POF=Point(INF,INF);
-
 ld Dist(Point A,Point B){
     return sqrt((A.x-B.x)*(A.x-B.x)+(A.y-B.y)*(A.y-B.y));
 }
-
 typedef Point Vector;
-
 ld Dot(Vector A,Vector B){return A.x*B.x+A.y*B.y;}
 ld Len(Vector A){return sqrt(Dot(A,A));}
 ld Cross(Vector A,Vector B){return A.x*B.y-A.y*B.x;}
@@ -85,7 +78,7 @@ divides by zero when they are parallel, so check \code{Line\_relation} first.
 
 %DEP point
 %LABEL seg
-%FROM Ruiming/geometry/Point_lines_vectors.cpp
+%FROM Ruiming/geomtery/Line_and_Vectors.cpp
 \begin{lstlisting}
 struct Line{
     Point p1,p2;
@@ -99,7 +92,6 @@ struct Line{
             p2=p1+Point(1,tan(angle));
         }
     }
-
     Line(ld a,ld b,ld c){
         if(ldcmp(a,0)==0){
             p1=Point(0,-c/b);
@@ -113,7 +105,6 @@ struct Line{
         }
     }
 };
-
 //for directed lines from p1 to p2
 ll Point_line_relation(Point P, Line v){
     ll c=ldcmp(Cross(P-v.p1,v.p2-v.p1),0);
@@ -121,26 +112,21 @@ ll Point_line_relation(Point P, Line v){
     if(c>0) return 2;//P on the rightside of v
     return 0; //P on v
 }
-
 bool Point_on_seg(Point P, Line v){
     return ldcmp(Cross(P-v.p1,v.p2-v.p1),0)==0
          &&ldcmp(Dot(P-v.p1,P-v.p2),0)<=0;
 }
-
 ld Dis_point_line(Point P, Line v){
     return fabs(Cross(P-v.p1,v.p2-v.p1)/Dist(v.p1,v.p2));
 }
-
 Point Point_line_proj(Point P, Line v){
     ld k=Dot(v.p2-v.p1,P-v.p1)/Dot(v.p2-v.p1,v.p2-v.p1);
     return v.p1+(v.p2-v.p1)*k;
 }
-
 Point Point_line_symmetry(Point P, Line v){
     Point q=Point_line_proj(P,v);
     return Point(2*q.x-P.x,2*q.y-P.y);
 }
-
 ld Dis_point_seg(Point P, Line v){
     if(ldcmp(Dot(P-v.p1,v.p2-v.p1),0)<0
      ||ldcmp(Dot(P-v.p2,v.p1-v.p2),0)<0){
@@ -148,37 +134,31 @@ ld Dis_point_seg(Point P, Line v){
     }
     return Dis_point_line(P,v);
 }
-
 //Directed lines
 ll Line_relation(Line v1, Line v2){
     if(ldcmp(Cross(v1.p2-v1.p1,v2.p2-v2.p1),0)==0){
         //overlapp
         if(Point_line_relation(v1.p1,v2)==0) return 1;
-
         //parallell
         else return 0;
     }
     //intersect
     return 2;
 }
-
 //Must have ab,cd not the same
 Point Cross_point(Point a,Point b,Point c,Point d){
     ld s1=Cross(b-a,c-a);
     ld s2=Cross(b-a,d-a);
     return Point(c.x*s2-d.x*s1,c.y*s2-d.y*s1)/(s2-s1);
 }
-
 bool Cross_Segment(Point a,Point b,Point c,Point d){
     Point P=Cross_point(a,b,c,d);
     if(P==POF) return 0;
-
     //special case if all share a line, in line case
     //whatever works, not in segment case
     if(Point_on_seg(a,Line(c,d))||Point_on_seg(b,Line(c,d))||
        Point_on_seg(c,Line(a,b))||Point_on_seg(d,Line(a,b)))
         return 1;
-
     if(Point_on_seg(P,Line(a,b))&&Point_on_seg(P,Line(c,d)))
         return 1;
     else return 0;
@@ -197,7 +177,7 @@ $I = (\texttt{Polygon\_area2} - B + 2)/2$ using the exact version in
 
 %DEP point seg
 %LABEL poly
-%FROM Ruiming/geometry/Polygon.cpp
+%FROM Ruiming/geomtery/Polygon.cpp
 \begin{lstlisting}
 //list of points p representing polygon
 ll Point_in_polygon(Point pt, Point *p,ll n){
@@ -207,7 +187,6 @@ ll Point_in_polygon(Point pt, Point *p,ll n){
     }
     for(int i=1;i<=n;i++){
         Line v=Line(p[i],p[i%n+1]);
-
         //Point on Edge
         if(Point_on_seg(pt,v)) return 2;
     }
@@ -223,7 +202,6 @@ ll Point_in_polygon(Point pt, Point *p,ll n){
     //return 1 is inside, 0 is outside
     return num!=0;
 }
-
 ld Polygon_area(Point *p,ll n){
     ld area=0;
     for(int i=1;i<=n;i++){
@@ -246,16 +224,14 @@ $h$ is small).}
 
 %DEP point
 %LABEL hull
-%FROM Ruiming/geometry/Convex_Hull.cpp
+%FROM Ruiming/geomtery/Convex_Hull.cpp
 \begin{lstlisting}
 ll Convex_Hull(Point *p, ll n,Point *ch){
     sort(p+1,p+n+1);
     n=unique(p+1,p+n+1)-(p+1);
     if (n == 1) { ch[1] = p[1]; return 1; }
     if (n == 2) { ch[1] = p[1]; ch[2] = p[2]; return 2; }
-
     ll v=0;
-
     for(int i=1;i<=n;i++){
         while(v>1&&
               ldcmp(Cross(ch[v]-ch[v-1],p[i]-ch[v]),0)<0){
@@ -263,7 +239,6 @@ ll Convex_Hull(Point *p, ll n,Point *ch){
         }
         ch[++v]=p[i];
     }
-
     ll j=v;
     for(int i=n-1;i>=1;i--){
         //<=0 do not count points on the side of convex hull
@@ -273,7 +248,6 @@ ll Convex_Hull(Point *p, ll n,Point *ch){
         }
         ch[++v]=p[i];
     }
-
     sort(ch+1,ch+v+1);
     v=unique(ch+1,ch+v+1)-(ch+1);
     //might include double points on the line case
@@ -295,27 +269,23 @@ Area of the intersection of convex polygons: push every edge of every polygon (e
 counter-clockwise), then the shoelace sum over \code{HPI}'s output.}
 
 %DEP point
-%FROM Ruiming/geometry/Half_Plane_Intersect.cpp
+%FROM Ruiming/geomtery/Half_Plane_Intersect.cpp
 %LABEL hpi
 \begin{lstlisting}
 struct Line {
     Point p1, p2;
     Vector v;
     ld ang;
-
     Line() : p1(0,0), p2(0,0), v(0,0), ang(0) {}
-
     Line(Point p1, Point p2) : p1(p1), p2(p2) {
         v = p2 - p1;
         ang = atan2l(v.y, v.x);
     }
-
     Line(Point P, ld angle) : p1(P) {
         p2 = p1 + Point(cosl(angle), sinl(angle));
         v = p2 - p1;
         ang = atan2l(v.y, v.x);
     }
-
     Line(ld a, ld b, ld c) {
         if (ldcmp(a, 0) == 0) {
             p1 = Point(0, -c/b);
@@ -330,29 +300,23 @@ struct Line {
         v = p2 - p1;
         ang = atan2l(v.y, v.x);
     }
-
     bool operator<(Line L) {
         if (ldcmp(ang, L.ang) != 0) return ang < L.ang;
         return ldcmp(Cross(L.p1 - p1, L.p2 - p1), 0) > 0;
     }
 };
-
 bool OnLeft(Line L, Point p) {
     return ldcmp(Cross(L.v, p - L.p1), 0) >= 0;
 }
-
 Point Cross_point(Line a, Line b) {
     Vector u = a.p1 - b.p1;
     ld t = Cross(b.v, u) / Cross(a.v, b.v);
     return a.p1 + a.v * t;
 }
-
 vector<Point> HPI(vector<Line> L) {
     int n = L.size();
     if (n == 0) return {};
-
     sort(L.begin(), L.end());
-
     // dedupe by polar angle, keep only the leftmost one
     vector<Line> lines;
     for (int i = 0; i < n; i++) {
@@ -362,37 +326,29 @@ vector<Point> HPI(vector<Line> L) {
     }
     n = lines.size();
     if (n <= 2) return {};
-
     vector<Line> q(n);
     vector<Point> p(n);
     int first = 0, last = 0;
     q[0] = lines[0];
-
     for (int i = 1; i < n; i++) {
         while (first < last && !OnLeft(lines[i], p[last-1]))
             last--;
         while (first < last && !OnLeft(lines[i], p[first]))
             first++;
-
         q[++last] = lines[i];
-
         if (ldcmp(Cross(q[last].v, q[last-1].v), 0) == 0) {
             last--;
             if (OnLeft(q[last], lines[i].p1))
                 q[last] = lines[i];
         }
-
         if (first < last) {
             p[last-1] = Cross_point(q[last-1], q[last]);
         }
     }
-
     while (first < last && !OnLeft(q[first], p[last-1]))
         last--;
     if (last - first <= 1) return {};
-
     p[last] = Cross_point(q[last], q[first]);
-
     vector<Point> ans;
     for (int i = first; i <= last; i++) ans.push_back(p[i]);
     return ans;
@@ -411,14 +367,13 @@ floating \code{Point}.\\[0.3ex]
 
 %DEP point
 %LABEL lattice
-%FROM Ruiming/geometry/Lattic_Point.cpp
+%FROM Ruiming/geomtery/Lattic_points.cpp
 \begin{lstlisting}
 // ==================== integer point ====================
 struct PointLL {
     ll x, y;
     PointLL() : x(0), y(0) {}
     PointLL(ll x, ll y) : x(x), y(y) {}
-
     PointLL operator+(const PointLL& B) const {
         return PointLL(x + B.x, y + B.y); }
     PointLL operator-(const PointLL& B) const {
@@ -432,36 +387,29 @@ struct PointLL {
     bool operator!=(const PointLL& B) const {
         return !(*this == B); }
 };
-
 typedef PointLL VectorLL;
-
 // dot product
 ll Dot(const VectorLL& A, const VectorLL& B) {
     return A.x * B.x + A.y * B.y;
 }
-
 // cross product
 ll Cross(const VectorLL& A, const VectorLL& B) {
     return A.x * B.y - A.y * B.x;
 }
-
 // squared distance
 ll Dist2(const PointLL& A, const PointLL& B) {
     ll dx = A.x - B.x, dy = A.y - B.y;
     return dx * dx + dy * dy;
 }
-
 // twice the signed area
 ll Area2(const PointLL& A, const PointLL& B,
          const PointLL& C) {
     return Cross(B - A, C - A);
 }
-
 // parallel test
 bool Parallel(const VectorLL& A, const VectorLL& B) {
     return Cross(A, B) == 0;
 }
-
 // line (integer points)
 struct LineLL {
     PointLL p1, p2;
@@ -469,7 +417,6 @@ struct LineLL {
     LineLL(const PointLL& p1, const PointLL& p2)
         : p1(p1), p2(p2) {}
 };
-
 // point vs line: 1 left, 2 right, 0 on the line
 ll Point_line_relation(const PointLL& P, const LineLL& v) {
     ll c = Cross(P - v.p1, v.p2 - v.p1);
@@ -477,7 +424,6 @@ ll Point_line_relation(const PointLL& P, const LineLL& v) {
     if (c > 0) return 2;
     return 0;
 }
-
 // is the point on the segment
 bool Point_on_seg(const PointLL& P, const LineLL& v) {
     return Cross(P - v.p1, v.p2 - v.p1) == 0 &&
@@ -486,7 +432,6 @@ bool Point_on_seg(const PointLL& P, const LineLL& v) {
            min(v.p1.y, v.p2.y) <= P.y &&
            P.y <= max(v.p1.y, v.p2.y);
 }
-
 // two lines: 0 parallel, 1 same line, 2 intersecting
 ll Line_relation(const LineLL& v1, const LineLL& v2) {
     if (Cross(v1.p2 - v1.p1, v2.p2 - v2.p1) == 0) {
@@ -496,7 +441,6 @@ ll Line_relation(const LineLL& v1, const LineLL& v2) {
     }
     return 2;
 }
-
 // point vs polygon (exact integers)
 // returns: 3 vertex, 2 edge, 1 inside, 0 outside
 ll Point_in_polygon(const PointLL& pt, const PointLL* p,
@@ -525,7 +469,6 @@ ll Point_in_polygon(const PointLL& pt, const PointLL* p,
     }
     return inside ? 1 : 0;
 }
-
 // twice the polygon area (signed), as ll
 ll Polygon_area2(const PointLL* p, ll n) {
     ll area = 0;
@@ -535,18 +478,15 @@ ll Polygon_area2(const PointLL* p, ll n) {
     }
     return area;
 }
-
 // distance
 ld Dist(const PointLL& A, const PointLL& B) {
     return sqrt((ld)Dist2(A, B));
 }
-
 // point to line distance
 ld Dis_point_line(const PointLL& P, const LineLL& v) {
     return fabs((ld)Cross(P - v.p1, v.p2 - v.p1))
            / Dist(v.p1, v.p2);
 }
-
 // point to segment distance
 ld Dis_point_seg(const PointLL& P, const LineLL& v) {
     if (Dot(P - v.p1, v.p2 - v.p1) < 0
@@ -555,7 +495,6 @@ ld Dis_point_seg(const PointLL& P, const LineLL& v) {
     }
     return Dis_point_line(P, v);
 }
-
 // projection onto a line (floating point)
 Point Point_line_proj(const PointLL& P, const LineLL& v) {
     ld k = (ld)Dot(v.p2 - v.p1, P - v.p1)
@@ -563,13 +502,11 @@ Point Point_line_proj(const PointLL& P, const LineLL& v) {
     return Point(v.p1.x + (v.p2.x - v.p1.x) * k,
                  v.p1.y + (v.p2.y - v.p1.y) * k);
 }
-
 // reflection in a line (floating point)
 Point Point_line_symmetry(const PointLL& P, const LineLL& v) {
     Point q = Point_line_proj(P, v);
     return Point(2 * q.x - P.x, 2 * q.y - P.y);
 }
-
 // line intersection (floating point). Lines must not be
 // parallel.
 Point Cross_point(const PointLL& a, const PointLL& b,
@@ -582,7 +519,6 @@ Point Cross_point(const PointLL& a, const PointLL& b,
         (c.y * s2 - d.y * s1) / denom
     );
 }
-
 // rotate a vector (floating point)
 Point Rotate(const PointLL& A, ld rad) {
     ld c = cos(rad), s = sin(rad);
@@ -662,3 +598,135 @@ vector<Point> circleCircle(Point c1, ld r1, Point c2, ld r2) {
     return {m - per, m + per};
 }
 \end{lstlisting}
+
+\entry{Hull diameter, point in convex hull}{KACTL \quad $O(n \log n)$, $O(n)$, $O(\log n)$}{%
+KACTL's, ported to Ruiming's exact \code{PointLL} (\code{a.cross(b,c)} is
+\code{Area2(a,b,c)}). All three are 0-indexed \code{vector}s.\\[0.3ex]
+\code{hullCCW}: the hull as an actual \textbf{counter-clockwise cycle}, collinear points
+dropped, first point not repeated --- what the two below need, and what Ruiming's
+\code{Convex\_Hull} (sorted output) is not.\\[0.3ex]
+\code{hullDiameter}: the farthest pair of points (rotating calipers); its squared
+distance is \code{Dist2(r[0], r[1])}. Run it on the hull, not the raw points.\\[0.3ex]
+\code{inHull(h, p, strict)}: is \code{p} inside the CCW hull \code{h}, by binary search
+around \code{h[0]} --- for many queries against one polygon, where Ruiming's $O(n)$
+\code{Point\_in\_polygon} is too slow. \code{strict = true} counts the boundary as
+outside.}
+
+%DEP point lattice
+%LABEL hullkactl
+\begin{lstlisting}
+typedef PointLL PL;
+vector<PL> hullCCW(vector<PL> pts) {
+    if (pts.size() <= 1) return pts;
+    sort(all(pts), [](const PL& a, const PL& b) {
+        return tie(a.x, a.y) < tie(b.x, b.y); });
+    vector<PL> h(pts.size() + 1);
+    int s = 0, t = 0;
+    for (int it = 2; it--; s = --t, reverse(all(pts)))
+        for (PL p : pts) {
+            while (t >= s+2 && Area2(h[t-2], h[t-1], p) <= 0)
+                t--;
+            h[t++] = p;
+        }
+    return {h.begin(), h.begin() + t - (t==2 && h[0]==h[1])};
+}
+array<PL, 2> hullDiameter(vector<PL> S) {
+    int n = (int)S.size(), j = n < 2 ? 0 : 1;
+    pair<ll, array<PL, 2>> res({0, {S[0], S[0]}});
+    rep(i,0,j)
+        for (;; j = (j + 1) % n) {
+            ll d = Dist2(S[i], S[j]);
+            if (d > res.first) res = {d, {S[i], S[j]}};
+            if (Cross(S[(j+1)%n] - S[j], S[i+1] - S[i]) >= 0)
+                break;
+        }
+    return res.second;
+}
+int side(PL s, PL e, PL p) {             // KACTL sideOf
+    ll c = Area2(s, e, p); return (c > 0) - (c < 0); }
+bool inHull(const vector<PL>& l, PL p, bool strict = true) {
+    int a = 1, b = (int)l.size() - 1, r = !strict;
+    if (l.size() < 3)
+        return r && Point_on_seg(p, LineLL(l[0], l.back()));
+    if (side(l[0], l[a], l[b]) > 0) swap(a, b);
+    if (side(l[0], l[a], p) >= r || side(l[0], l[b], p) <= -r)
+        return false;
+    while (abs(a - b) > 1) {
+        int c = (a + b) / 2;
+        (side(l[0], l[c], p) > 0 ? b : a) = c;
+    }
+    return side(l[a], l[b], p) < r;
+}
+\end{lstlisting}
+
+\entry{Enclosing circle, polygon cut, tangents}{KACTL}{%
+KACTL's, ported to Ruiming's floating \code{Point}. \code{perp} is the vector turned
+$90^\circ$ counter-clockwise.\\[0.3ex]
+\code{mec(ps)}: the \textbf{smallest circle containing all points}, \code{\{centre,
+radius\}}. Randomised incremental, expected $O(n)$ --- the shuffle is what makes it
+fast, keep it. \code{ccCenter} is the circumcentre of a triangle (divides by zero if the
+three points are collinear).\\[0.3ex]
+\code{polygonCut(poly, s, e)}: the part of a polygon (any orientation, need not be
+convex) lying to the \textbf{right} of the directed line \code{s -> e}; the part to the
+left is cut away. Swap \code{s, e} to keep the other side. Several cuts in a row on a
+convex polygon = half-plane intersection when the box is known.\\[0.3ex]
+\code{tangents(c1, r1, c2, r2)}: the \textbf{outer} common tangents of two circles, as
+pairs of touching points (0, 1 or 2 of them). \textbf{Inner} tangents: pass
+\code{-r2}. Tangents from a point: \code{r2 = 0}. Empty if one circle is inside the
+other or they coincide.}
+
+%DEP point
+%LABEL mec
+\begin{lstlisting}
+Vector perp(Vector a) { return Vector(-a.y, a.x); }
+Point ccCenter(Point A, Point B, Point C) {
+    Vector b = C - A, c = B - A;
+    return A + perp(b * Dot(c, c) - c * Dot(b, b))
+               / Cross(b, c) / 2;
+}
+pair<Point, ld> mec(vector<Point> ps) {
+    shuffle(all(ps), mt19937(time(0)));
+    Point o = ps[0];
+    ld r = 0, EPS = 1 + 1e-8;
+    rep(i,0,(ll)ps.size()) if (Dist(o, ps[i]) > r * EPS) {
+        o = ps[i], r = 0;
+        rep(j,0,i) if (Dist(o, ps[j]) > r * EPS) {
+            o = (ps[i] + ps[j]) / 2;
+            r = Dist(o, ps[i]);
+            rep(k,0,j) if (Dist(o, ps[k]) > r * EPS) {
+                o = ccCenter(ps[i], ps[j], ps[k]);
+                r = Dist(o, ps[i]);
+            }
+        }
+    }
+    return {o, r};
+}
+vector<Point> polygonCut(const vector<Point>& poly,
+                         Point s, Point e) {
+    vector<Point> res;
+    rep(i,0,(ll)poly.size()) {
+        Point cur = poly[i];
+        Point prev = i ? poly[i-1] : poly.back();
+        ld a = Cross(e-s, cur-s), b = Cross(e-s, prev-s);
+        if ((a < 0) != (b < 0))
+            res.push_back(cur + (prev - cur) * (a / (a - b)));
+        if (a < 0)
+            res.push_back(cur);
+    }
+    return res;
+}
+vector<pair<Point, Point>> tangents(Point c1, ld r1,
+                                    Point c2, ld r2) {
+    Vector d = c2 - c1;
+    ld dr = r1 - r2, d2 = Dot(d, d), h2 = d2 - dr * dr;
+    if (d2 == 0 || h2 < 0) return {};
+    vector<pair<Point, Point>> out;
+    for (ld sign : {-1, 1}) {
+        Vector v = (d * dr + perp(d) * sqrtl(h2) * sign) / d2;
+        out.push_back({c1 + v * r1, c2 + v * r2});
+    }
+    if (h2 == 0) out.pop_back();
+    return out;
+}
+\end{lstlisting}
+
