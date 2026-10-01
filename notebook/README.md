@@ -35,7 +35,7 @@ the running header both read from them, so change them in one place.
 | single-sided, A4 | A4 landscape (still "A4 size"); print one-sided |
 | university name **upper left** | `\lhead{\uni}` = "KTH Royal Institute of Technology" |
 | page number **upper right** | `\rhead{\thepage}` |
-| front page | KTH logo, university, team name, members, "Team Reference Document · NCPC / NWERC" (the rules' own term, instead of "Notebook"), **and the same header as every page** — it counts toward the 25, and the rule asks for university + number on the pages, so it is page 1. Checked with `pdftotext`: all 25 pages start with the university and end with their own number |
+| front page | KTH logo, university, team name, members, "Team Reference Document" (the rules' own term, instead of "Notebook"), **and the same header as every page** — it counts toward the 25, and the rule asks for university + number on the pages, so it is page 1. Checked with `pdftotext`: all 25 pages start with the university and end with their own number |
 | readable at 0.5 m | 8pt code, 7pt prose and tables. KACTL (9pt `extreport`, `\footnotesize` throughout) prints *everything* at 7pt, so nothing here is smaller than KACTL. The PathDP table used to be `\scriptsize` = 6pt; raised to 7pt |
 | institution on the folder cover | do this when you print |
 
