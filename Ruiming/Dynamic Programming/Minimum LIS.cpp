@@ -4,30 +4,50 @@ using namespace std;
  
 typedef long long ll;
 typedef long double ld;
-typedef __int128 i128;
-ld eps = 1e-9;
  
 const ll INF=1e18;
-const ll MAXN=206;//UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-ll n,lst[MAXN],ans;
-multiset<ll> maxi;
+const ll MAXN=100006;//UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ll n,dp[MAXN],a[MAXN],ans[MAXN];
+vector<ll> last;
+map<ll,ll> mapp;
 
 int main(){
     ios_base::sync_with_stdio(false);
     cin.tie(NULL);
     cin>>n;
+    last.push_back(-INF);//dummy
+
     for(int i=1;i<=n;i++){
-        ll a;
-        cin>>a;
-        a*=-1;
-        if(maxi.empty()||*maxi.lower_bound(a)==*maxi.begin()){
-            maxi.insert(a);
+        cin>>a[i];
+        ans[i]=INF;
+    }
+
+    for(int i=n;i>=1;i--){
+        //directly add to the end
+        if(-a[i]>*(--last.end())){
+            last.push_back(-a[i]);
+            dp[i]=last.size()-1;
         }else{
-            auto temp=maxi.lower_bound(a);
-            temp--;
-            maxi.erase(maxi.find(*temp));
-            maxi.insert(a);
+            //substitute
+            auto temp=lower_bound(last.begin(),last.end(),-a[i]);
+            dp[i]=temp-last.begin();
+            last[temp-last.begin()]=-a[i];
         }
     }
-    cout<<maxi.size()<<'\n';
+
+    ll m=last.size()-1;
+
+    for(int i=1;i<=n;i++){
+        ll idx=m+1-dp[i];
+        
+        //only need to check larger than prev, if larger than this the even larger
+        if(a[i]>ans[idx-1]){
+            ans[idx]=a[i];
+        }
+    }
+
+    for(int i=1;i<=m;i++){
+        cout<<ans[i]<<' ';
+    }
+    cout<<'\n';
 }

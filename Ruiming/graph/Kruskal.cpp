@@ -4,8 +4,6 @@ using namespace std;
  
 typedef long long ll;
 typedef long double ld;
-typedef __int128 i128;
-ld eps = 1e-9;
  
 const ll INF=1e18;
 const ll MAXN=206;//UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -24,6 +22,8 @@ void merge_set(ll x,ll y){
     ll a=find_set(x);
     ll b=find_set(y);
 
+    if(a==b) return;
+    
     sz[a]+=sz[b];
     s[b]=a;
 }

@@ -4,8 +4,6 @@ using namespace std;
 
 typedef long long ll;
 typedef long double ld;
-typedef __int128 i128;
-ld eps = 1e-9;
 
 ll fast(ll x,ll p,ll m){
     x%=m;
@@ -57,7 +55,7 @@ int main(){
     ll d=gcd(a,m);
 
     ll temp=m;
-    for(int i=2;i<=m;i++){
+    for(int i=2;i<=temp;i++){
         if(temp%i==0){//here uses temp still makes sure i is a prime
             ll times=0;
             while(temp%i==0){

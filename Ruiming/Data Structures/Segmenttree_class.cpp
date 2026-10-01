@@ -4,8 +4,6 @@ using namespace std;
  
 typedef long long ll;
 typedef long double ld;
-typedef __int128 i128;
-ld eps = 1e-9;
  
 const ll MOD=998244353;
 const ll INF=1e15;
@@ -101,6 +99,22 @@ struct SegTree {
         return query(l, r, 1, 0, n - 1);
     }
 };
+
+// ===== 线段树模板使用说明 =====
+// 1. 初始化：传入一个 vector<ll> arr（下标 0 开始）
+//    vector<ll> arr = {1,2,3,4,5};
+//    SegTree seg(arr);                     // 自动建树，内部使用正数
+
+// 2. 区间加：将 [l, r]（闭区间，0 基）每个元素加上 k
+//    seg.update(l, r, k);
+//    例： seg.update(1, 3, 2);             // arr[1..3] 都加 2
+
+// 3. 区间求和：查询 [l, r]（闭区间，0 基）的和
+//    ll sum = seg.query(l, r);
+//    例： ll s = seg.query(0, 4);          // 求整个数组的和
+
+// ===== 完整示例 =====
+/*
 
 int main(){
     SegTree T;
