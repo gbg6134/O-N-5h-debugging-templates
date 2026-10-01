@@ -4,8 +4,6 @@ using namespace std;
 
 typedef long long ll;
 typedef long double ld;
-typedef __int128 i128;
-ld eps = 1e-9;
 
 const int MAXN=206;
 ll n,p,ans[MAXN],corr[MAXN],now,fac[MAXN],inv[MAXN];

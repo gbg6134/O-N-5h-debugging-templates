@@ -1,9 +1,6 @@
 //UPDATERA ARRAY STORLEKEN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #include <bits/stdc++.h>
 using namespace std;
-typedef long double ld;
-typedef __int128 i128;
-ld eps = 1e-9;
  
 typedef __int128 ll;
 
